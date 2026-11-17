@@ -124,6 +124,32 @@
 
   .snack { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:80; }
   .proto-tag { margin-left:auto; }
+  /* agentic interactions */
+  .cmd-btn { margin-left:auto; }
+  .head .proto-tag { margin-left:0; }
+  .kbd { display:inline-flex; align-items:center; justify-content:center; min-width:20px; border:1px solid var(--ref-color-grey-20); border-radius:4px; padding:0 5px; font-size:var(--ref-font-size-xs); line-height:18px; color:var(--ref-color-grey-80); background:var(--ref-color-white); }
+  .overlay { position:fixed; inset:0; background:color-mix(in srgb, var(--ref-color-grey-150) 45%, transparent); z-index:90; display:flex; justify-content:center; align-items:flex-start; padding:12vh 16px 0; }
+  .cmd { width:640px; max-width:100%; padding:var(--ref-spacing-xs); display:flex; flex-direction:column; gap:var(--ref-spacing-xs); }
+  .cmd-note { padding:4px 8px 0; }
+  .cmd-item { display:flex; align-items:center; gap:10px; padding:10px 8px; border-radius:var(--ref-border-radius-md); cursor:pointer; }
+  .cmd-item:hover, .cmd-item.sel { background:var(--ref-color-grey-05); }
+  .cmd-item i { color:var(--ref-color-grey-80); }
+  .overlay.right { justify-content:flex-end; align-items:stretch; padding:0; }
+  .drawer { width:480px; max-width:100%; height:100%; border-radius:0; padding:var(--ref-spacing-md); display:flex; flex-direction:column; gap:var(--ref-spacing-sm); overflow:auto; }
+  .ext-box { border:1px solid var(--ref-color-grey-20); border-radius:var(--ref-border-radius-md); padding:12px; display:flex; flex-direction:column; gap:8px; }
+  .ext-box.phone { max-width:340px; border-radius:16px; background:var(--ref-color-grey-05); }
+  .steer { display:flex; flex-direction:column; gap:8px; }
+  .steer .ap-tag { cursor:pointer; }
+  .q-opts { display:flex; gap:var(--ref-spacing-xs); flex-wrap:wrap; }
+  .dec.focused { border-color:var(--ref-color-electric-blue-100); }
+  .pulse { width:8px; height:8px; border-radius:50%; background:var(--ref-color-green-100); display:inline-block; flex-shrink:0; animation:pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity:.3; } }
+  .live-line { display:flex; align-items:center; gap:6px; }
+  .step, .obj-row { display:flex; align-items:center; gap:var(--ref-spacing-xs); padding:12px 0; border-top:1px solid var(--ref-color-grey-20); }
+  .step:first-child, .obj-row:first-child { border-top:0; }
+  .step.off { opacity:.5; }
+  .step-n { width:24px; height:24px; border-radius:50%; background:var(--ref-color-grey-05); display:flex; align-items:center; justify-content:center; font-size:var(--ref-font-size-xs); font-weight:var(--ref-font-weight-bold); flex-shrink:0; }
+  .obj-row.click { cursor:pointer; }
   @media (max-width:1100px){ .tiles{grid-template-columns:repeat(2,1fr);} .two{grid-template-columns:1fr;} }
 </style>
 </head>
@@ -134,6 +160,7 @@
     <div class="nav-sec">Mission Control</div>
     <button class="navitem" data-view="home"><i class="ap-icon-sparkles"></i>Home</button>
     <button class="navitem" data-view="decisions"><i class="ap-icon-rounded-check"></i>Decisions<span class="ap-counter normal blue" id="navCount"></span></button>
+    <button class="navitem" data-view="objectives"><i class="ap-icon-target"></i>Objectives</button>
     <button class="navitem" data-view="agents"><i class="ap-icon-multiple-users"></i>Agents</button>
     <button class="navitem" data-view="playbook"><i class="ap-icon-bookmark"></i>Playbook</button>
     <button class="navitem" data-view="activity"><i class="ap-icon-history"></i>Activity</button>
@@ -149,6 +176,7 @@
   <div class="main">
     <header class="head">
       <h1 class="ap-h3" id="title">Home</h1>
+      <button class="ap-button stroked grey cmd-btn" id="cmdBtn"><i class="ap-icon-sparkles"></i><span>Ask or command</span><span class="kbd">⌘K</span></button>
       <span class="ap-status blue no-dot proto-tag">Prototype</span>
       <button class="ap-button stroked grey who-btn" id="whoBtn" aria-expanded="false"><span id="whoAvatar"></span><span id="whoName"></span><i class="ap-icon-chevron-down"></i></button>
       <div class="ap-action-dropdown menu" id="whoMenu" hidden></div>
@@ -157,6 +185,12 @@
   </div>
 </div>
 <div class="ap-snackbar snack" id="snack" hidden><div class="ap-snackbar-left"><span id="snackText"></span></div><div class="ap-snackbar-right" id="snackRight"></div></div>
+<div class="overlay" id="cmdOverlay" hidden><div class="ap-card cmd" role="dialog" aria-label="Ask or command">
+  <div class="ap-input-group"><i class="ap-icon-sparkles"></i><input id="cmdInput" placeholder="Ask anything or tell agents what to do" autocomplete="off"></div>
+  <div id="cmdBody"></div>
+  <div class="row muted xs cmd-note"><span>Mission Control acts across the app, within your rights.</span><span class="spacer"></span><span class="kbd">Enter</span><span>run</span><span class="kbd">Esc</span><span>close</span></div>
+</div></div>
+<div class="overlay right" id="slackOverlay" hidden><aside class="ap-card drawer" id="slackBody"></aside></div>
 
 <script>
 /* ---------------- data ---------------- */
@@ -271,6 +305,14 @@ const INIT_DECISIONS = [
     context:'12 posts · Instagram and LinkedIn', list:['4 product posts','4 community posts','4 seasonal posts (Christmas, New Year)'],
     why:'Built from the Café Brio playbook. The client sees only the posts, in the approval flow.', conf:84,
     approve:'Send to client', approveLog:'12 posts sent to Thomas Girard for approval' },
+  { id:'d12', uc:'Q1', agent:'inbox-velo', profile:'velo-fb', urgency:'high', kind:'Question', title:'A customer asks for a 240 € refund. What should I do?',
+    context:'Private message · order #4821 · delivered damaged', quote:'"The frame arrived bent. I want my money back."',
+    question:{ opts:['Offer a store credit','Pass to support','Refund, I\'ll confirm it'], similar:'Do the same for refunds over 200 €', topic:'a refund is over 200 €' },
+    why:'Refunds over 200 € are above my limit, and your playbook has no rule for this case.', conf:null },
+  { id:'d13', uc:'Q2', agent:'inbox-lune', profile:'lune-ig', urgency:'med', kind:'Question', title:'Does the Ova lamp work with a dimmer?',
+    context:'@paul.m asked under "New spring collection" · the product sheet doesn\'t say', quote:'"Does it work with a dimmer switch?"',
+    question:{ opts:['Yes, with LED dimmers','No','I don\'t know, ask the product team'], similar:'Save the answer for future questions on this lamp', topic:'someone asks if the Ova lamp works with a dimmer' },
+    why:'No answer in the product sheet or saved replies. I won\'t guess on product facts.', conf:null },
 ];
 
 const INIT_LOG = [
@@ -293,7 +335,7 @@ const PLAYBOOK = {
 };
 
 /* ---------------- state ---------------- */
-const S = { who:'sophie', view:'home', tab:'all', decisions:INIT_DECISIONS.map(d=>({...d})), log:INIT_LOG.map(l=>({...l})), openWhy:{}, editing:{}, rejecting:{}, agent:null,
+const S = { who:'sophie', view:'home', tab:'all', decisions:INIT_DECISIONS.map(d=>({...d})), log:INIT_LOG.map(l=>({...l})), openWhy:{}, editing:{}, rejecting:{}, steer:{}, focus:0, agent:null,
   pb:'lune', paused:{all:false,lune:false,velo:false,brio:false}, sim:null, levels:{} };
 AGENTS.forEach(a=>a.actions.forEach((x,i)=>S.levels[a.id+':'+i]=x.l));
 
@@ -352,7 +394,7 @@ $('nav').addEventListener('click', e => {
 });
 
 /* ---------------- views ---------------- */
-const TITLES = { home:'Home', decisions:'Decisions', agents:'Agents', playbook:'Playbook', activity:'Activity', guardrails:'Guardrails' };
+const TITLES = { home:'Home', decisions:'Decisions', objectives:'Objectives', agents:'Agents', playbook:'Playbook', activity:'Activity', guardrails:'Guardrails' };
 
 function render(){
   renderWho();
@@ -362,7 +404,7 @@ function render(){
   $('navCount').textContent = n; $('navCount').hidden = !n;
   $('title').textContent = ext ? 'Mission Control' : (S.agent ? 'Agents' : TITLES[S.view]);
   if(ext){ $('view').innerHTML = viewExternal(); return; }
-  const v = { home:viewHome, decisions:viewDecisions, agents:()=>S.agent?viewAgent():viewAgents(), playbook:viewPlaybook, activity:viewActivity, guardrails:viewGuardrails }[S.view];
+  const v = { home:viewHome, decisions:viewDecisions, objectives:viewObjectives, agents:()=>S.agent?viewAgent():viewAgents(), playbook:viewPlaybook, activity:viewActivity, guardrails:viewGuardrails }[S.view];
   $('view').innerHTML = v();
 }
 
@@ -408,7 +450,7 @@ function viewHome(){
     </section>
     <section class="ap-card pad">
       <div class="sec-head"><h2 class="ap-h4">Agents</h2><span class="spacer"></span><button class="ap-button ghost blue" data-go="agents"><span>Manage</span></button></div>
-      <div>${ags.map(a=>`<div class="health"><div class="ag-ico"><i class="ap-icon-${MOD_ICON[a.module]}"></i></div><div class="spacer"><div class="b">${a.name}</div><div class="muted xs">${CLIENTS[a.client].name}</div></div>${statusTag(a)}</div>`).join('')}</div>
+      <div>${ags.map(a=>`<div class="health"><div class="ag-ico"><i class="ap-icon-${MOD_ICON[a.module]}"></i></div><div class="spacer"><div class="b">${a.name} · ${CLIENTS[a.client].name}</div><div class="muted xs live-line">${isPaused(a) ? '<span>Not working</span>' : `<span class="pulse"></span><span data-live="${a.id}">${LIVE[a.id][liveTick % LIVE[a.id].length]}</span>`}</div></div>${statusTag(a)}</div>`).join('')}</div>
     </section>
   </div>
   <section class="ap-card pad access">
@@ -416,8 +458,9 @@ function viewHome(){
     <ul>${access.map(([ok,t])=>`<li class="${ok?'yes':'no'}"><i class="ap-icon-${ok?'check':'close'}"></i><span${ok?'':' class="muted"'}>${t}</span></li>`).join('')}</ul>
   </section>`;
 }
+function isPaused(a){ return a.status==='paused' || S.paused.all || S.paused[a.client]; }
 function statusTag(a){
-  const paused = a.status==='paused' || S.paused.all || S.paused[a.client];
+  const paused = isPaused(a);
   return paused ? `<span class="ap-status grey">Paused</span>` : `<span class="ap-status green">Active</span>`;
 }
 
@@ -428,11 +471,14 @@ function viewDecisions(){
   if(!mods.includes(S.tab)) S.tab='all';
   const list = vis.filter(d => S.tab==='all' || modOf(d)===S.tab)
     .sort((a,b)=>'hml'.indexOf(a.urgency[0])-'hml'.indexOf(b.urgency[0]));
+  S.curList = list.map(d=>d.id); if(!(S.focus < list.length)) S.focus = 0;
   const readOnly = R().modules.length===0;
   return `
   ${readOnly ? `<div class="ap-infobox info"><i class="ap-icon-info"></i><div class="ap-infobox-content"><div class="ap-infobox-texts"><span class="ap-infobox-message">You have read-only access. You can follow decisions, not approve them.</span></div></div></div>` : ''}
   <div class="filters"><div class="ap-tabs"><div class="ap-tabs-nav" role="tablist">${mods.map(m=>{ const n = vis.filter(d=>m==='all'||modOf(d)===m).length;
-      return `<button class="ap-tabs-tab${m===S.tab?' active':''}" data-tab="${m}">${m==='all'?'All':MODULES[m]}<span class="ap-counter normal ${m===S.tab?'blue':'grey'}">${n}</span></button>`; }).join('')}</div></div></div>
+      return `<button class="ap-tabs-tab${m===S.tab?' active':''}" data-tab="${m}">${m==='all'?'All':MODULES[m]}<span class="ap-counter normal ${m===S.tab?'blue':'grey'}">${n}</span></button>`; }).join('')}</div></div>
+    <span class="spacer"></span>${readOnly ? '' : `<button class="ap-button stroked grey" id="slackBtn"><i class="ap-icon-external-link"></i><span>See it in Slack</span></button>`}</div>
+  ${readOnly ? '' : `<div class="row muted xs"><span class="kbd">J</span><span class="kbd">K</span><span>move</span><span class="kbd">A</span><span>approve</span><span class="kbd">R</span><span>reject</span><span class="kbd">E</span><span>edit</span><span class="kbd">⌘K</span><span>ask or command</span></div>`}
   ${list.length ? list.map(decCard).join('') : `<div class="ap-card"><div class="empty"><div class="ico"><i class="ap-icon-rounded-check"></i></div><h2 class="ap-h3">All caught up</h2><p class="muted">Your agents will bring new decisions here. Everything they did alone is in Activity.</p><button class="ap-button primary blue" data-go="activity"><span>See activity</span></button></div></div>`}`;
 }
 
@@ -445,6 +491,8 @@ function decCard(d){
       <span class="spacer"></span><button class="ap-button ghost grey" data-cancel-reject="${d.id}"><span>Cancel</span></button></div>`;
   } else if(S.editing[d.id]){
     foot = `<div class="acts"><button class="ap-button stroked grey" data-cancel-edit="${d.id}"><span>Cancel</span></button><button class="ap-button primary blue" data-approve="${d.id}" data-edited="1"><span>Save and ${d.approve.toLowerCase()}</span></button></div>`;
+  } else if(can && d.question){
+    foot = `<div class="acts"><button class="ap-button ghost grey" data-later="${d.id}"><span>Decide later</span></button></div>`;
   } else if(can){
     foot = `<div class="acts">
       <button class="ap-button stroked grey" data-reject="${d.id}"><i class="ap-icon-thumb-down"></i><span>Reject</span></button>
@@ -461,7 +509,17 @@ function decCard(d){
     ? `<div class="ap-textarea-field autoresize"><label>Suggested ${d.list?'posts':'reply'}</label><textarea id="ed-${d.id}" rows="3">${esc(d.draft || (d.list||[]).join('\n'))}</textarea></div>`
     : d.draft ? `<div class="draft"><div class="lbl muted xs b">${d.kind==='Autonomy'||d.kind==='New rule'||d.kind==='Insight' ? 'Proposed change' : 'Suggested reply'}</div><div>${esc(d.draft)}</div></div>`
     : d.list ? `<div class="draft"><div class="lbl muted xs b">Proposal</div><ul>${d.list.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
-  return `<article class="ap-card dec" id="card-${d.id}">
+  const st = S.steer[d.id] || {};
+  const steerBlock = (can && d.draft && !d.need && !S.editing[d.id] && !S.rejecting[d.id]) ? `<div class="steer">
+      ${st.busy ? `<div class="live-line muted"><span class="pulse"></span>Rewriting from "${esc(st.req)}"</div>` : `
+      <div class="ap-input-group"><i class="ap-icon-sparkles"></i><input id="steer-${d.id}" data-steer="${d.id}" placeholder="Ask for a change: shorter, more formal, add a discount code…" autocomplete="off"></div>
+      <div class="tags">${['Shorter','More formal','Add a discount code'].map(c=>`<span class="ap-tag grey" data-steer-chip="${d.id}" data-c="${c}"><span>${c}</span></span>`).join('')}</div>`}
+      ${st.note ? `<div class="row xs"><i class="ap-icon-check"></i><span>Rewritten from "${esc(st.note)}"</span><button class="ap-button ghost blue" data-remember="${d.id}"><span>Remember for ${CLIENTS[clientOf(d)].name}</span></button></div>` : ''}
+    </div>` : '';
+  const qBlock = d.question ? `<div class="q-opts">${d.question.opts.map((o,i)=>`<button class="ap-button stroked grey" data-answer="${d.id}" data-i="${i}" ${can?'':'disabled'}><span>${esc(o)}</span></button>`).join('')}</div>
+    ${can ? `<div class="ap-input-group"><i class="ap-icon-pen"></i><input id="ans-${d.id}" data-ans="${d.id}" placeholder="Or type your own answer and press Enter" autocomplete="off"></div>
+    <label class="ap-checkbox-container"><input type="checkbox" id="sim-${d.id}" checked><i></i><span>${esc(d.question.similar)}</span></label>` : ''}` : '';
+  return `<article class="ap-card dec${S.curList && S.curList[S.focus]===d.id && R().modules.length ? ' focused' : ''}" id="card-${d.id}">
     <div class="dec-meta"><span class="ap-status ${uc}">${ul}</span><span class="b">${d.kind}</span><span class="sep">·</span>
       ${profAv(d.profile,24)}<span>${CLIENTS[p.client].name} ${p.handle.startsWith('@')?p.handle:''}</span><span class="sep">·</span>
       <span class="muted">${a.name}</span><span class="spacer"></span><span class="ap-tag grey mini uc"><span>${d.uc}</span></span></div>
@@ -469,6 +527,7 @@ function decCard(d){
     <div class="muted">${esc(d.context)}</div>
     ${d.quote ? `<div class="quote">${esc(d.quote)}</div>` : ''}
     ${draftBlock}
+    ${steerBlock}${qBlock}
     ${d.extra ? `<div class="row xs"><i class="ap-icon-pause"></i><span>${esc(d.extra)}</span></div>` : ''}
     ${S.openWhy[d.id] ? `<div class="why"><span class="b xs">Why this proposal</span><span>${esc(d.why)}</span>${d.conf?`<span class="muted xs">Confidence ${d.conf}%</span>`:''}<span class="muted xs">Agent owner: ${a.owner}</span></div>` : ''}
     <div class="dec-foot"><button class="ap-button ghost blue" data-why="${d.id}"><span>${S.openWhy[d.id]?'Hide':'Why?'}</span></button>${foot}</div>
@@ -599,8 +658,15 @@ function viewGuardrails(){
 
 /* ---------------- events ---------------- */
 $('view').addEventListener('click', e => {
-  const t = e.target.closest('button, [data-go], [data-agent], .ap-tag[data-reject-reason]'); if(!t) return;
+  const t = e.target.closest('button, [data-go], [data-agent], [data-obj], .ap-tag[data-reject-reason], .ap-tag[data-steer-chip], .ap-tag[data-plan-chip]'); if(!t) return;
   const ds = t.dataset;
+  if(ds.steerChip){ steer(ds.steerChip, ds.c); return; }
+  if(ds.remember){ remember(ds.remember); return; }
+  if(ds.answer){ const d=S.decisions.find(x=>x.id===ds.answer); answer(d.id, d.question.opts[+ds.i]); return; }
+  if(ds.later){ snack('Moved to later. The agent will ask again tomorrow.'); return; }
+  if(ds.obj){ objAction(ds.obj); return; }
+  if(ds.planChip){ planSteer(ds.planChip); return; }
+  if(t.id==='slackBtn'){ openSlack(); return; }
   if(ds.go){ S.view = ds.go; S.agent=null; render(); $('scroll').scrollTop=0; return; }
   if(ds.tab){ S.tab = ds.tab; render(); return; }
   if(ds.why){ S.openWhy[ds.why] = !S.openWhy[ds.why]; render(); return; }
@@ -628,6 +694,7 @@ $('view').addEventListener('click', e => {
 });
 $('view').addEventListener('change', e => {
   const t = e.target;
+  if(t.dataset.step!==undefined){ S.obj.steps[+t.dataset.step].on = t.checked; render(); return; }
   if(t.dataset.level){ S.levels[t.dataset.level] = t.value; const l = LEVELS.find(x=>x.k===t.value);
     snack('Autonomy set to '+l.label); addLog({who:R().name, ag:false, act:'Changed autonomy to '+l.label, profile:agentById(t.dataset.level.split(':')[0]).profiles[0], res:'Done', why:'Agent settings.'}); }
   if(t.dataset.pauseScope){ const c=t.dataset.pauseScope; S.paused[c]=t.checked; render();
@@ -638,6 +705,282 @@ function resolveReject(id, reason){
   resolve(id, 'Rejected: "'+reason+'" · '+d.title, false);
   setTimeout(()=>{ S.log[0].res='Rejected'; render(); }, 260);
 }
+
+/* ================= agentic interactions ================= */
+
+/* --- 1. correct a draft by asking --- */
+const SHORT = {
+  d1:'Sorry about this. We\'ll message you privately today to fix it.',
+  d2:'Sorry for the wait, Julien. Support will reply within the hour.',
+  d3:'Yes! 3 to 5 days, free from 60 €.',
+  d8:'Switch next week\'s 2 carousels to Reels.' };
+const FORMAL = {
+  d1:'We sincerely apologize for this experience. Our team will contact you privately today to resolve it.',
+  d2:'Hello Julien, please accept our apologies for the delay. Our support team will contact you within the hour.',
+  d3:'Hello Marie, we do ship to Belgium, within 3 to 5 days. Shipping is free for orders over 60 €.' };
+function rewrite(d, req){
+  const r = req.toLowerCase();
+  if(/short|court|bref/.test(r)) return SHORT[d.id] || d.draft.split('. ')[0].replace(/\.?$/,'.');
+  if(/formal|formel|vous|polite/.test(r)) return FORMAL[d.id] || d.draft.replace(/^Hi /,'Hello ');
+  if(/discount|code|promo|geste/.test(r)) return d.draft.replace(/\s*$/,'') + ' As a thank-you for your patience, here is 10% off your next order: SORRY10.';
+  if(/emoji|warm|chaleur/.test(r)) return d.draft.replace(/\.$/,'') + ' 💛';
+  return d.draft.replace(/\.$/,'') + '. Let us know if there is anything else we can do.';
+}
+function ruleFrom(req){
+  const r = req.toLowerCase();
+  if(/short|court|bref/.test(r)) return 'Keep replies short: 1 or 2 sentences.';
+  if(/formal|formel|vous|polite/.test(r)) return 'Use a formal tone ("vous") in replies.';
+  if(/discount|code|promo|geste/.test(r)) return 'Offer a 10% code when a customer had a bad experience.';
+  return 'When drafting replies: ' + req + '.';
+}
+function steer(id, req){
+  if(!req || !req.trim()) return;
+  S.steer[id] = {busy:true, req}; render();
+  setTimeout(()=>{ const d = S.decisions.find(x=>x.id===id); if(!d) return; d.draft = rewrite(d, req); S.steer[id] = {note:req}; render(); }, 1100);
+}
+function remember(id){
+  const d = S.decisions.find(x=>x.id===id), note = S.steer[id]?.note; if(!d || !note) return;
+  const pb = PLAYBOOK[clientOf(d)]; (pb.pending ||= []).push({ r:ruleFrom(note), from:'From your change request, by '+R().name });
+  S.steer[id].note = null; render();
+  snack(R().validateRules ? 'Suggested as a rule. Review it in Playbook.' : 'Suggested as a rule. An admin will review it.');
+}
+
+/* --- 2. the agent asks a question --- */
+function answer(id, text){
+  const d = S.decisions.find(x=>x.id===id); if(!d || !text || !text.trim()) return;
+  const sim = $('sim-'+id)?.checked;
+  if(sim){ (PLAYBOOK[clientOf(d)].pending ||= []).push({ r:`When ${d.question.topic}: ${text}.`, from:'From your answer to the agent, by '+R().name }); }
+  resolve(id, `Answered the agent: "${text}"${sim ? ' · saved for similar cases' : ''}`, false);
+}
+
+/* --- 3. live agent status --- */
+const LIVE = {
+  'inbox-lune':['Drafting 3 replies','Reading 12 new comments','Hid 1 spam comment','Waiting for new messages'],
+  'inbox-velo':['Reading 4 private messages','Sent 2 thank-you replies','Waiting for new messages'],
+  'pub-lune':['Looking for gaps next week','Reading last month\'s top posts'],
+  'pub-brio':['Preparing December ideas','Checking the Café Brio playbook'],
+  'listen':['Scanning 1,240 posts on #bikecommute','Watching 4 keywords'],
+  'rep-brio':['Not working'],
+};
+let liveTick = 0;
+setInterval(()=>{ liveTick++; document.querySelectorAll('[data-live]').forEach(el=>{ const arr = LIVE[el.dataset.live] || []; if(arr.length) el.textContent = arr[liveTick % arr.length]; }); }, 2600);
+
+/* --- 4. objectives: goal → plan → live run --- */
+const OBJ_TEXT = 'Launch the VivaTech campaign for Maison Lune';
+function planSteps(o){ return [
+  {who:'Listening agent', ico:'feature-listening', t:'Track #VivaTech and 3 competitors', when:'Now', on:true},
+  {who:'Publishing agent', ico:'calendar', t:`Draft ${o.n} posts on ${o.nets}: teasers, live coverage, recap`, when:o.start, on:true},
+  {who:'You', ico:'user', t:`Review the ${o.n} drafts`, when:'Checkpoint', check:true, on:true},
+  {who:'Publishing agent', ico:'calendar', t:'Schedule the approved posts', when:'After your review', on:true},
+  {who:'Inbox agent', ico:'feature-inbox', t:'Reply to event comments, with undo', when:'June 11 to 14', on:true},
+  {who:'Reporting agent', ico:'data-report', t:'End-of-campaign report: what to repeat next year', when:'June 20', on:true},
+]; }
+S.obj = { phase:'list', text:OBJ_TEXT, o:{n:9, nets:'Instagram', start:'Today'}, steps:[], note:null, launched:false, now:'' };
+const rr = () => { if(S.view==='objectives' && !R().external) render(); };
+
+function startPlanning(){
+  const msgs = ['Reading the Maison Lune playbook…','Looking at last year\'s event posts…','Checking the June calendar…'];
+  let i = 0;
+  const t = setInterval(()=>{ i++; const el = $('planMsg');
+    if(i < msgs.length){ if(el) el.textContent = msgs[i]; }
+    else { clearInterval(t); S.obj.phase='plan'; S.obj.steps = planSteps(S.obj.o); rr(); } }, 800);
+}
+function planSteer(req){
+  if(!req || !req.trim()) return;
+  const r = req.toLowerCase(), o = S.obj.o;
+  if(/fewer|less|moins/.test(r)) o.n = 6; else if(/more|plus de/.test(r)) o.n = 12;
+  if(/linkedin/.test(r)) o.nets = 'Instagram and LinkedIn';
+  if(/earlier|week|semaine|avant|tôt/.test(r)) o.start = 'Today, 4 weeks before';
+  const on = S.obj.steps.map(s=>s.on);
+  S.obj.steps = planSteps(o).map((s,i)=>({...s, on:on[i]}));
+  S.obj.note = req; render();
+}
+function runFrom(i){
+  const O = S.obj, s = O.steps[i]; if(!s) { O.now=''; rr(); return; }
+  if(s.st==='skipped') return runFrom(i+1);
+  if(s.check){ s.st='waiting'; O.now=''; rr(); snack('The plan needs your review to continue'); return; }
+  if(i >= 4){ s.st='scheduled'; rr(); return runFrom(i+1); }
+  s.st = 'running';
+  if(i===1){ let k=0; const t = setInterval(()=>{ k++; O.now = `Drafting post ${k} of ${O.o.n}`; rr();
+      if(k >= O.o.n){ clearInterval(t); s.st='done'; O.now=''; rr(); runFrom(i+1); } }, 380); return; }
+  O.now = i===0 ? 'Setting up 4 keywords' : 'Scheduling posts'; rr();
+  setTimeout(()=>{ s.st='done'; O.now=''; rr(); runFrom(i+1); }, 1400);
+}
+function objAction(a){
+  const O = S.obj;
+  if(a==='new'){ O.phase='new'; render(); $('objText')?.focus(); }
+  if(a==='cancel' || a==='back'){ O.phase='list'; render(); }
+  if(a==='plan'){ O.text = ($('objText')?.value || OBJ_TEXT).trim(); O.phase='planning'; O.note=null; O.o={n:9, nets:'Instagram', start:'Today'}; render(); startPlanning(); }
+  if(a==='launch'){ O.phase='run'; O.launched=true; O.steps.forEach(s=>s.st = s.on ? 'todo' : 'skipped');
+    addLog({who:R().name, ag:false, act:'Launched objective: '+O.text, profile:'lune-ig', res:'Done', why:'Plan approved in Objectives.'}); render(); runFrom(0); }
+  if(a==='review'){ O.steps[2].st='done'; snack(`${O.o.n} drafts approved`);
+    addLog({who:R().name, ag:false, act:`Approved ${O.o.n} campaign drafts`, profile:'lune-ig', res:'Done', why:'Objective checkpoint.'}); runFrom(3); }
+  if(a==='open'){ O.phase='run'; render(); }
+}
+function stepStatus(s){
+  return { done:'<span class="ap-status green">Done</span>', running:'<span class="ap-status blue">In progress</span>', waiting:'<span class="ap-status orange">Waiting for you</span>',
+    scheduled:'<span class="ap-status grey">Scheduled</span>', skipped:'<span class="ap-status grey no-dot">Skipped</span>', todo:'<span class="ap-status grey no-dot">Next</span>' }[s.st] || '';
+}
+function runLabel(){
+  const st = S.obj.steps; const done = st.filter(s=>s.st==='done').length, total = st.filter(s=>s.st!=='skipped').length;
+  if(st.some(s=>s.st==='waiting')) return ['orange','Waiting for you'];
+  if(st.some(s=>s.st==='running')) return ['blue',`Running · ${done} of ${total} done`];
+  return ['green','On track · rest scheduled'];
+}
+function viewObjectives(){
+  const r = R(), O = S.obj, canRun = r.modules.includes('publishing') && sees('lune');
+  const head = `<div class="sec-head"><div><h2 class="ap-h3">Objectives</h2><p class="muted">Give agents a goal. Check their plan, then follow it live.</p></div><span class="spacer"></span>
+    ${O.phase==='list' && canRun ? `<button class="ap-button primary blue" data-obj="new"><i class="ap-icon-plus"></i><span>New objective</span></button>` : ''}
+    ${O.phase==='run' ? `<button class="ap-button stroked grey" data-obj="back"><i class="ap-icon-arrow-left"></i><span>All objectives</span></button>` : ''}</div>`;
+  if(O.phase==='new') return head + `<section class="ap-card pad">
+    <div class="ap-textarea-field"><label>What do you want to achieve?</label><textarea id="objText" rows="2">${esc(O.text)}</textarea></div>
+    <p class="muted xs">Agents use your playbook, past campaigns and calendar. Nothing starts before you approve the plan.</p>
+    <div class="dec-foot"><div class="acts"><button class="ap-button stroked grey" data-obj="cancel"><span>Cancel</span></button><button class="ap-button primary blue" data-obj="plan"><i class="ap-icon-sparkles"></i><span>Plan it</span></button></div></div></section>`;
+  if(O.phase==='planning') return head + `<section class="ap-card pad"><div class="b">${esc(O.text)}</div><div class="live-line muted"><span class="pulse"></span><span id="planMsg">Reading the Maison Lune playbook…</span></div></section>`;
+  if(O.phase==='plan' || O.phase==='run'){
+    const run = O.phase==='run';
+    const rows = O.steps.map((s,i)=>`<div class="step${s.on ? '' : ' off'}">
+      ${!run && !s.check ? `<label class="ap-checkbox-container" title="Include this step"><input type="checkbox" data-step="${i}" ${s.on?'checked':''}><i></i></label>` : `<span class="step-n">${i+1}</span>`}
+      <div class="ag-ico"><i class="ap-icon-${s.ico}"></i></div>
+      <div class="spacer"><div class="b">${esc(s.t)}</div><div class="muted xs">${s.who} · ${s.when}</div>
+        ${run && s.st==='running' && O.now ? `<div class="xs live-line"><span class="pulse"></span>${esc(O.now)}</div>` : ''}</div>
+      ${run ? stepStatus(s) : ''}
+      ${run && s.st==='waiting' ? `<button class="ap-button primary blue" data-obj="review"><span>Approve ${O.o.n} drafts</span></button>` : ''}</div>`).join('');
+    return head + `<section class="ap-card pad">
+      <div class="sec-head"><div><div class="muted xs">Objective · Maison Lune</div><h2 class="ap-h4">${esc(O.text)}</h2></div><span class="spacer"></span>${run ? `<span class="ap-status ${runLabel()[0]}">${runLabel()[1]}</span>` : ''}</div>
+      ${!run ? `<p class="muted">Here is my plan. Untick a step to skip it, or ask for a change.</p>` : ''}
+      <div>${rows}</div>
+      ${!run ? `<div class="steer">
+          <div class="ap-input-group"><i class="ap-icon-sparkles"></i><input data-plan-steer placeholder="Ask for a change to the plan" autocomplete="off"></div>
+          <div class="tags">${['Fewer posts','Add LinkedIn','Start a week earlier'].map(c=>`<span class="ap-tag grey" data-plan-chip="${c}"><span>${c}</span></span>`).join('')}</div>
+          ${O.note ? `<div class="row xs"><i class="ap-icon-check"></i><span>Plan updated from "${esc(O.note)}"</span></div>` : ''}</div>
+        <div class="dec-foot"><div class="acts"><button class="ap-button stroked grey" data-obj="cancel"><span>Cancel</span></button><button class="ap-button primary blue" data-obj="launch"><i class="ap-icon-play"></i><span>Launch plan</span></button></div></div>` : ''}
+    </section>`;
+  }
+  const list = [
+    `<div class="obj-row"><div class="ag-ico"><i class="ap-icon-target"></i></div><div class="spacer"><div class="b">Spring collection launch</div><div class="muted xs">Maison Lune · 4 agents · ends May 31</div></div><span class="ap-status green">On track · step 4 of 6</span></div>`,
+    O.launched ? `<div class="obj-row click" data-obj="open"><div class="ag-ico"><i class="ap-icon-target"></i></div><div class="spacer"><div class="b">${esc(O.text)}</div><div class="muted xs">Maison Lune · 4 agents · ends June 20</div></div><span class="ap-status ${runLabel()[0]}">${runLabel()[1]}</span><i class="ap-icon-chevron-right"></i></div>` : '',
+  ].join('');
+  return head + `<section class="ap-card pad"><div>${list}</div></section>
+    ${canRun ? '' : `<div class="row muted xs"><i class="ap-icon-lock-on"></i><span>You need Publishing rights to start an objective.</span></div>`}
+    ${canRun && !O.launched ? `<div class="row muted xs"><i class="ap-icon-sparkles"></i><span>Tip: press <span class="kbd">⌘K</span> and type "Launch the VivaTech campaign".</span></div>` : ''}`;
+}
+
+/* --- 5. command bar (⌘K) --- */
+const CMDS = [
+  { text:'Pause everything for Vélo Nord until Monday', re:/pause|stop|arr[eê]t/i, plan:()=>{
+      if(!R().pause || !sees('velo')) return {deny:'You can only pause agents on clients you have access to.'};
+      return { msg:'Pause the 2 agents working on Vélo Nord (Inbox and Listening) until Monday 9 am. Nothing will be sent in the meantime. An admin can resume them earlier.', ok:'Pause until Monday',
+        run:()=>{ S.paused.velo = true; addLog({who:R().name, ag:false, act:'Paused Vélo Nord agents until Monday', profile:'velo-ig', res:'Done', why:'From the command bar.'}); snack('Vélo Nord agents paused until Monday'); } }; } },
+  { text:'Show what agents sent alone yesterday', re:/show|sent|envoy|what|quoi|montre/i, plan:()=>({ go:()=>{ S.view='activity'; S.actFilter='agents'; S.agent=null; render(); snack('Showing what agents did'); } }) },
+  { text:'Never reply to competitor accounts', re:/never|always|jamais|toujours|don.?t|rule|règle/i, plan:q=>{
+      const txt = (q && /never|always|jamais|toujours|don.?t/i.test(q)) ? q : 'Never reply to competitor accounts';
+      return { msg:`Add this rule for every client: "${txt}". All agents will follow it.${R().validateRules ? '' : ' An admin will review it first.'}`, ok:R().validateRules ? 'Add rule' : 'Suggest rule',
+        run:()=>{ if(R().validateRules) PLAYBOOK.org.dont.push(txt); else (PLAYBOOK.org.pending ||= []).push({r:txt, from:'From the command bar, by '+R().name});
+          S.view='playbook'; S.pb='org'; S.agent=null; snack(R().validateRules ? 'Rule added to the organization playbook' : 'Rule suggested to admins'); } }; } },
+  { text:'Launch the VivaTech campaign for Maison Lune', re:/launch|campaign|campagne|vivatech|objective|lance/i, plan:q=>{
+      if(!R().modules.includes('publishing') || !sees('lune')) return {deny:'You need Publishing rights on Maison Lune to launch a campaign.'};
+      return { go:()=>{ S.view='objectives'; S.agent=null; S.obj.text = (q && q.length > 25 && /vivatech|campaign|campagne/i.test(q)) ? q.charAt(0).toUpperCase()+q.slice(1) : OBJ_TEXT; S.obj.phase='planning'; S.obj.note=null; S.obj.o={n:9, nets:'Instagram', start:'Today'}; render(); startPlanning(); } }; } },
+  { text:'Approve all shipping questions on Maison Lune', re:/approve|valide|ship|livraison/i, plan:()=>{
+      const d = S.decisions.find(x=>x.id==='d3');
+      if(!d) return {deny:'Nothing left to approve on that.'};
+      if(!canDecide(d)) return {deny:'You don\'t have Inbox rights on Maison Lune.'};
+      return { msg:'Send the same reply to the 7 people asking about shipping to Belgium on @maisonlune. You can undo for 30 seconds.', ok:'Send 7 replies',
+        run:()=>{ S.view='decisions'; S.agent=null; render(); resolve('d3', d.approveLog, true); } }; } },
+];
+S.cmd = {q:'', res:null};
+function openCmd(){
+  if(R().external){ snack('Not available for client approvers'); return; }
+  S.cmd = {q:'', res:null}; $('cmdInput').value=''; $('cmdOverlay').hidden=false; renderCmd(); $('cmdInput').focus();
+}
+function closeCmd(){ $('cmdOverlay').hidden = true; }
+const matches = q => q.trim() ? CMDS.filter(c=>c.re.test(q)) : CMDS;
+function renderCmd(){
+  const b = $('cmdBody'), res = S.cmd.res;
+  if(res){
+    b.innerHTML = res.deny
+      ? `<div class="ap-infobox warning"><i class="ap-icon-warning"></i><div class="ap-infobox-content"><div class="ap-infobox-texts"><span class="ap-infobox-message">${esc(res.deny)}</span></div></div></div>
+         <div class="dec-foot"><div class="acts"><button class="ap-button stroked grey" data-cmd="back"><span>Back</span></button></div></div>`
+      : `<div class="why"><span class="b xs">Here is what I'll do</span><span>${esc(res.msg)}</span></div>
+         <div class="dec-foot"><div class="acts"><button class="ap-button stroked grey" data-cmd="back"><span>Cancel</span></button><button class="ap-button primary blue" data-cmd="ok"><span>${esc(res.ok)}</span></button></div></div>`;
+    return;
+  }
+  const q = S.cmd.q, m = matches(q);
+  b.innerHTML = (q.trim() && !m.length ? `<p class="muted xs cmd-note">I can't do that in this prototype yet. Try one of these:</p>` : `<p class="muted xs cmd-note">${q.trim() ? 'Best match' : 'Try'}</p>`)
+    + (m.length ? m : CMDS).map((c,i)=>`<div class="cmd-item${i===0 && q.trim() && m.length ? ' sel' : ''}" data-cmd-i="${CMDS.indexOf(c)}"><i class="ap-icon-sparkles"></i><span>${esc(c.text)}</span></div>`).join('');
+}
+function choose(c){ const p = c.plan(S.cmd.q.trim()); if(p.go){ closeCmd(); p.go(); return; } S.cmd.res = p; renderCmd(); }
+$('cmdBtn').onclick = openCmd;
+$('cmdInput').addEventListener('input', e=>{ S.cmd.q = e.target.value; S.cmd.res = null; renderCmd(); });
+$('cmdInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ e.preventDefault();
+    if(S.cmd.res && S.cmd.res.run){ const run = S.cmd.res.run; closeCmd(); run(); render(); }
+    else { const m = matches(S.cmd.q); if(m.length) choose(m[0]); } }
+});
+$('cmdOverlay').addEventListener('click', e=>{
+  if(e.target.id==='cmdOverlay') return closeCmd();
+  const it = e.target.closest('[data-cmd-i]'); if(it) return choose(CMDS[+it.dataset.cmdI]);
+  const b = e.target.closest('[data-cmd]'); if(!b) return;
+  if(b.dataset.cmd==='back'){ S.cmd.res = null; renderCmd(); $('cmdInput').focus(); }
+  if(b.dataset.cmd==='ok'){ const run = S.cmd.res.run; closeCmd(); run(); render(); }
+});
+
+/* --- 6. same decision in Slack and on the phone --- */
+function openSlack(){
+  const vis = visibleDecisions();
+  S.slackD = vis.find(x=>canDecide(x) && x.approve && x.draft && x.urgency==='high') || vis.find(x=>canDecide(x) && x.approve) || null;
+  S.slackDone = null; renderSlack(); $('slackOverlay').hidden = false;
+}
+function renderSlack(){
+  const d = S.slackD, p = d && PROFILES[d.profile];
+  const urgent = visibleDecisions().filter(x=>x.urgency==='high' && canDecide(x)).length;
+  $('slackBody').innerHTML = `
+    <div class="sec-head"><div><h2 class="ap-h3">Same decision, where you already are</h2><p class="muted">Decisions also reach Slack, phones and AI assistants (MCP). Mission Control stays the record.</p></div>
+      <span class="spacer"></span><button class="ap-icon-button" data-slack="close" aria-label="Close"><i class="ap-icon-close"></i></button></div>
+    <div class="b">Slack · #social-team</div>
+    <div class="ext-box">${d ? `
+      <div class="row"><span class="ap-avatar size-32 square"><span class="ap-avatar-initials">A</span></span><span class="b">Agorapulse</span><span class="muted xs">10:42</span></div>
+      <div><span class="b">${URG[d.urgency][1]} · ${esc(d.kind)}</span> on ${CLIENTS[p.client].name} ${p.net.charAt(0).toUpperCase()+p.net.slice(1)}</div>
+      <div class="b">${esc(d.title)}</div>
+      ${d.quote ? `<div class="quote">${esc(d.quote)}</div>` : ''}
+      ${d.draft ? `<div class="draft"><div class="lbl muted xs b">Suggested reply</div>${esc(d.draft)}</div>` : ''}
+      ${S.slackDone ? `<div class="row"><i class="ap-icon-rounded-check"></i><span>${esc(S.slackDone)}</span></div>`
+        : `<div class="row"><button class="ap-button primary blue" data-slack="ok"><span>${d.approve}</span></button><button class="ap-button stroked grey" data-slack="open"><span>Open in Agorapulse</span></button></div>`}`
+      : `<p class="muted">Nothing waiting for you.</p>`}</div>
+    <div class="b">Phone notification</div>
+    <div class="ext-box phone"><div class="row xs muted"><span class="b">Agorapulse</span><span class="spacer"></span><span>now</span></div>
+      <div class="b">${urgent} urgent decision${urgent===1?'':'s'}</div><div class="muted">${d ? esc(d.title) : 'All caught up'}</div></div>`;
+}
+$('slackOverlay').addEventListener('click', e=>{
+  if(e.target.id==='slackOverlay'){ $('slackOverlay').hidden = true; return; }
+  const b = e.target.closest('[data-slack]'); if(!b) return; const a = b.dataset.slack, d = S.slackD;
+  if(a==='close') $('slackOverlay').hidden = true;
+  if(a==='open'){ $('slackOverlay').hidden = true; S.view='decisions'; render(); $('card-'+d.id)?.scrollIntoView({block:'center'}); }
+  if(a==='ok' && S.decisions.includes(d)){ S.slackDone = `${d.approveLog} by ${R().name} from Slack. Logged in Mission Control.`; resolve(d.id, d.approveLog+' (from Slack)', false); renderSlack(); }
+});
+
+/* --- 7. keyboard --- */
+document.addEventListener('keydown', e=>{
+  if((e.metaKey || e.ctrlKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); $('cmdOverlay').hidden ? openCmd() : closeCmd(); return; }
+  if(e.key==='Escape'){ closeCmd(); $('slackOverlay').hidden = true; $('whoMenu').hidden = true; return; }
+  const tg = e.target;
+  if(tg.tagName==='INPUT' || tg.tagName==='TEXTAREA'){
+    if(e.key==='Enter' && !e.shiftKey){
+      if(tg.dataset.steer){ e.preventDefault(); steer(tg.dataset.steer, tg.value); }
+      else if(tg.dataset.ans){ e.preventDefault(); answer(tg.dataset.ans, tg.value); }
+      else if(tg.dataset.planSteer!==undefined){ e.preventDefault(); planSteer(tg.value); }
+    }
+    return;
+  }
+  if(!$('cmdOverlay').hidden || !$('slackOverlay').hidden || S.view!=='decisions' || R().external || !R().modules.length || e.metaKey || e.ctrlKey) return;
+  const ids = S.curList || []; if(!ids.length) return;
+  const k = e.key.toLowerCase();
+  if(k==='j' || k==='k'){ S.focus = Math.max(0, Math.min(ids.length-1, S.focus + (k==='j' ? 1 : -1))); render(); $('card-'+ids[S.focus])?.scrollIntoView({block:'nearest', behavior:'smooth'}); return; }
+  const d = S.decisions.find(x=>x.id===ids[S.focus]); if(!d || !canDecide(d)) return;
+  if(k==='a' && d.approve) resolve(d.id, d.approveLog, d.undo);
+  if(k==='r'){ S.rejecting[d.id] = true; render(); }
+  if(k==='e' && d.draft){ e.preventDefault(); S.editing[d.id] = true; render(); $('ed-'+d.id)?.focus(); }
+});
 
 render();
 </script>
