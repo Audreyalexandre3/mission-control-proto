@@ -1,0 +1,645 @@
+<!doctype html>
+<!-- mode: html-prototype · design-guidelines · DS: @agorapulse/ui-theme@22.0.7 + ui-symbol@22.0.0 via jsDelivr -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mission Control · Agorapulse prototype</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@agorapulse/ui-theme@22.0.7/assets/desktop_variables.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@agorapulse/ui-theme@22.0.7/assets/style/css-ui/font-face.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@agorapulse/ui-symbol@22.0.0/icons/ap-icons.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@agorapulse/ui-theme@22.0.7/assets/style/css-ui/index.css">
+<style>
+  /* Layout only. Visual components are DS CSS-UI classes (.ap-*). Borders we author use grey-20 (house rule). */
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; overflow:hidden; }
+  body { background:var(--ref-color-grey-bg); color:var(--ref-color-grey-100); font-family:var(--ref-font-family); font-size:var(--ref-font-size-sm); -webkit-font-smoothing:antialiased; }
+  h1,h2,h3,p { margin:0; }
+  .muted { color:var(--ref-color-grey-80); }
+  .xs { font-size:var(--ref-font-size-xs); line-height:var(--ref-font-line-height-xs); }
+  .b { font-weight:var(--ref-font-weight-bold); }
+  .row { display:flex; align-items:center; gap:var(--ref-spacing-xxs); }
+  .spacer { flex:1; }
+  [hidden] { display:none !important; }
+
+  .app { display:grid; grid-template-columns:220px 1fr; height:100vh; }
+
+  /* nav */
+  .nav { background:var(--ref-color-white); border-right:1px solid var(--ref-color-grey-20); display:flex; flex-direction:column; padding:var(--ref-spacing-xs) var(--ref-spacing-xxs); overflow:auto; }
+  .logo { font-weight:var(--ref-font-weight-bold); font-size:21px; letter-spacing:-.03em; color:var(--ref-color-orange-100); padding:2px 8px 12px; }
+  .nav-sec { padding:14px 10px 6px; font-size:var(--ref-font-size-xs); color:var(--ref-color-grey-80); font-weight:var(--ref-font-weight-bold); }
+  .navitem { display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:var(--ref-border-radius-md); cursor:pointer; color:var(--ref-color-grey-100); background:none; border:0; font:inherit; text-align:left; width:100%; }
+  .navitem:hover { background:var(--ref-color-grey-05); }
+  .navitem.active { background:var(--ref-color-electric-blue-10); color:var(--ref-color-electric-blue-100); font-weight:var(--ref-font-weight-bold); }
+  .navitem .ap-counter { margin-left:auto; }
+  .navitem.dim { color:var(--ref-color-grey-80); }
+  .nav .grow { flex:1; }
+
+  /* main */
+  .main { display:flex; flex-direction:column; min-width:0; height:100vh; }
+  .head { display:flex; align-items:center; gap:var(--ref-spacing-xs); height:64px; padding:0 var(--ref-spacing-md); background:var(--ref-color-white); border-bottom:1px solid var(--ref-color-grey-20); flex-shrink:0; position:relative; }
+  .head h1 { white-space:nowrap; }
+  .scroll { position:relative; flex:1; overflow:auto; padding:var(--ref-spacing-lg) var(--ref-spacing-md) 120px; }
+  .wrap { max-width:920px; margin:0 auto; display:flex; flex-direction:column; gap:var(--ref-spacing-md); }
+
+  /* role switcher */
+  .who-btn .ap-avatar { margin-right:2px; }
+  .menu { position:absolute; top:56px; right:var(--ref-spacing-md); width:380px; z-index:50; padding:var(--ref-spacing-xxs); }
+  .menu .ap-action-dropdown-item { align-items:flex-start; gap:var(--ref-spacing-xs); cursor:pointer; }
+  .menu .ap-action-dropdown-item.sel { background:var(--ref-color-electric-blue-10); }
+  .menu-foot { display:flex; align-items:center; justify-content:space-between; padding:10px 12px 6px; }
+
+  /* cards */
+  .ap-card.pad { padding:var(--ref-spacing-md); display:flex; flex-direction:column; gap:var(--ref-spacing-sm); }
+  .sec-head { display:flex; align-items:center; gap:var(--ref-spacing-xs); }
+  .sec-head p { margin-top:2px; }
+
+  /* home */
+  .hello h1 { margin-bottom:4px; }
+  .tiles { display:grid; grid-template-columns:repeat(4,1fr); gap:var(--ref-spacing-sm); }
+  .tile { background:var(--ref-color-white); border:1px solid var(--ref-color-grey-20); border-radius:var(--ref-border-radius-md); padding:var(--ref-spacing-sm); }
+  .tile .v { font-size:24px; font-weight:var(--ref-font-weight-bold); line-height:32px; }
+  .two { display:grid; grid-template-columns:1.4fr 1fr; gap:var(--ref-spacing-md); align-items:start; }
+  .mini-dec { display:flex; align-items:center; gap:var(--ref-spacing-xs); padding:10px 0; border-top:1px solid var(--ref-color-grey-20); cursor:pointer; }
+  .mini-dec:first-of-type { border-top:0; }
+  .mini-dec .t { flex:1; min-width:0; }
+  .mini-dec .t div { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .health { display:flex; align-items:center; gap:var(--ref-spacing-xs); padding:8px 0; border-top:1px solid var(--ref-color-grey-20); }
+  .health:first-of-type { border-top:0; }
+  .access li { display:flex; gap:8px; align-items:flex-start; padding:4px 0; }
+  .access ul { list-style:none; margin:0; padding:0; }
+  .access .yes i { color:var(--ref-color-green-100); }
+  .access .no i { color:var(--ref-color-grey-80); }
+
+  /* decisions */
+  .filters { display:flex; align-items:center; gap:var(--ref-spacing-sm); }
+  .dec { padding:var(--ref-spacing-md); display:flex; flex-direction:column; gap:var(--ref-spacing-xs); }
+  .dec.leaving { opacity:0; transform:translateY(-6px); transition:all .25s; }
+  .dec-meta { display:flex; align-items:center; gap:var(--ref-spacing-xxs); flex-wrap:wrap; }
+  .dec-meta .sep { color:var(--ref-color-grey-80); }
+  .dec h3 { font-size:var(--ref-font-size-md); line-height:var(--ref-font-line-height-md); }
+  .quote { background:var(--ref-color-grey-05); border-radius:var(--ref-border-radius-md); padding:10px 12px; }
+  .draft { border:1px solid var(--ref-color-grey-20); border-radius:var(--ref-border-radius-md); padding:10px 12px; }
+  .draft .lbl { margin-bottom:4px; }
+  .draft ul { margin:4px 0 0; padding-left:18px; }
+  .why { background:var(--ref-color-grey-05); border-radius:var(--ref-border-radius-md); padding:10px 12px; display:flex; flex-direction:column; gap:4px; }
+  .dec-foot { display:flex; align-items:center; gap:var(--ref-spacing-sm); margin-top:4px; }
+  .dec-foot .acts { display:flex; gap:var(--ref-spacing-sm); margin-left:auto; flex-wrap:wrap; justify-content:flex-end; }
+  .reasons { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .reasons .ap-tag { cursor:pointer; }
+  .blocked { display:flex; align-items:center; gap:6px; }
+  .uc { display:none; }
+  body.show-uc .uc { display:inline-flex; }
+
+  /* agents */
+  .ap-table { width:100%; }
+  .ap-table tr.click { cursor:pointer; }
+  .ap-table th { text-align:left; font-weight:var(--ref-font-weight-bold); color:var(--ref-color-grey-80); font-size:var(--ref-font-size-xs); padding:8px 12px; border-bottom:1px solid var(--ref-color-grey-20); }
+  .ap-table td { padding:10px 12px; vertical-align:middle; }
+  .ag-name { display:flex; align-items:center; gap:10px; }
+  .ag-ico { width:32px; height:32px; border-radius:var(--ref-border-radius-md); background:var(--ref-color-grey-05); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .kv { display:grid; grid-template-columns:160px 1fr; gap:10px 16px; align-items:start; }
+  .tags { display:flex; flex-wrap:wrap; gap:6px; }
+  .tags .ap-tag, .tags .ap-tag > span { max-width:none; overflow:visible; text-overflow:clip; }
+  .auto-table td.c, .auto-table th.c { text-align:center; }
+  .auto-table .ap-radio-container { justify-content:center; display:inline-flex; }
+  .lvl-legend { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .lvl-legend div { border:1px solid var(--ref-color-grey-20); border-radius:var(--ref-border-radius-md); padding:8px 10px; }
+
+  /* playbook */
+  .rule { display:flex; align-items:flex-start; gap:10px; padding:10px 0; border-top:1px solid var(--ref-color-grey-20); }
+  .rule:first-child { border-top:0; }
+  .rule .t { flex:1; }
+
+  /* guardrails */
+  .switch-row { display:flex; align-items:center; gap:var(--ref-spacing-xs); padding:10px 0; border-top:1px solid var(--ref-color-grey-20); }
+  .switch-row:first-child { border-top:0; }
+  .bar { height:8px; background:var(--ref-color-grey-10); border-radius:8px; overflow:hidden; }
+  .bar > span { display:block; height:100%; background:var(--ref-color-orange-100); }
+
+  /* empty state */
+  .empty { text-align:center; padding:var(--ref-spacing-xl) var(--ref-spacing-md); display:flex; flex-direction:column; align-items:center; gap:var(--ref-spacing-xs); }
+  .empty .ico { width:56px; height:56px; border-radius:50%; background:var(--ref-color-grey-05); display:flex; align-items:center; justify-content:center; font-size:24px; color:var(--ref-color-grey-80); }
+  .empty p { max-width:460px; }
+
+  .snack { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:80; }
+  .proto-tag { margin-left:auto; }
+  @media (max-width:1100px){ .tiles{grid-template-columns:repeat(2,1fr);} .two{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="nav" id="nav">
+    <div class="logo">agorapulse</div>
+    <div class="nav-sec">Mission Control</div>
+    <button class="navitem" data-view="home"><i class="ap-icon-sparkles"></i>Home</button>
+    <button class="navitem" data-view="decisions"><i class="ap-icon-rounded-check"></i>Decisions<span class="ap-counter normal blue" id="navCount"></span></button>
+    <button class="navitem" data-view="agents"><i class="ap-icon-multiple-users"></i>Agents</button>
+    <button class="navitem" data-view="playbook"><i class="ap-icon-bookmark"></i>Playbook</button>
+    <button class="navitem" data-view="activity"><i class="ap-icon-history"></i>Activity</button>
+    <button class="navitem" data-view="guardrails"><i class="ap-icon-lock-on"></i>Guardrails</button>
+    <div class="nav-sec">Modules</div>
+    <button class="navitem dim" data-out><i class="ap-icon-calendar"></i>Publishing</button>
+    <button class="navitem dim" data-out><i class="ap-icon-feature-inbox"></i>Inbox</button>
+    <button class="navitem dim" data-out><i class="ap-icon-feature-listening"></i>Listening</button>
+    <button class="navitem dim" data-out><i class="ap-icon-data-report"></i>Reports</button>
+    <div class="grow"></div>
+  </nav>
+
+  <div class="main">
+    <header class="head">
+      <h1 class="ap-h3" id="title">Home</h1>
+      <span class="ap-status blue no-dot proto-tag">Prototype</span>
+      <button class="ap-button stroked grey who-btn" id="whoBtn" aria-expanded="false"><span id="whoAvatar"></span><span id="whoName"></span><i class="ap-icon-chevron-down"></i></button>
+      <div class="ap-action-dropdown menu" id="whoMenu" hidden></div>
+    </header>
+    <div class="scroll" id="scroll"><div class="wrap" id="view"></div></div>
+  </div>
+</div>
+<div class="ap-snackbar snack" id="snack" hidden><div class="ap-snackbar-left"><span id="snackText"></span></div><div class="ap-snackbar-right" id="snackRight"></div></div>
+
+<script>
+/* ---------------- data ---------------- */
+const CLIENTS = { lune:{name:'Maison Lune'}, velo:{name:'Vélo Nord'}, brio:{name:'Café Brio'} };
+const PROFILES = {
+  'lune-ig':{client:'lune', net:'instagram', handle:'@maisonlune'},
+  'lune-fb':{client:'lune', net:'facebook', handle:'Maison Lune'},
+  'lune-li':{client:'lune', net:'linkedin', handle:'Maison Lune'},
+  'velo-ig':{client:'velo', net:'instagram', handle:'@velonord'},
+  'velo-fb':{client:'velo', net:'facebook', handle:'Vélo Nord'},
+  'brio-ig':{client:'brio', net:'instagram', handle:'@cafebrio'},
+  'brio-li':{client:'brio', net:'linkedin', handle:'Café Brio'},
+};
+const MODULES = { inbox:'Inbox', publishing:'Publishing', listening:'Listening', reports:'Reports' };
+const MOD_ICON = { inbox:'feature-inbox', publishing:'calendar', listening:'feature-listening', reports:'data-report' };
+
+const ROLES = {
+  sophie:{ name:'Sophie Martin', role:'Organization admin', desc:'Agency lead. All clients, all modules.', clients:['lune','velo','brio'], modules:['inbox','publishing','listening','reports'], configure:true, grantAuto:true, validateRules:true, guardrails:true, pause:true },
+  karim:{ name:'Karim Benali', role:'Workspace admin · Maison Lune', desc:'Social media manager. One client, all modules.', clients:['lune'], modules:['inbox','publishing','listening','reports'], configure:true, grantAuto:true, validateRules:true, guardrails:false, pause:true },
+  lea:{ name:'Léa Petit', role:'Member · Inbox', desc:'Community manager. Inbox rights on 2 clients.', clients:['lune','velo'], modules:['inbox'], configure:false, grantAuto:false, validateRules:false, guardrails:false, pause:true },
+  hugo:{ name:'Hugo Laurent', role:'Read only · Maison Lune', desc:'Can look, cannot act.', clients:['lune'], modules:[], configure:false, grantAuto:false, validateRules:false, guardrails:false, pause:false },
+  thomas:{ name:'Thomas Girard', role:'External approver · Café Brio', desc:'The agency client. Approves posts only.', external:true, clients:[], modules:[] },
+};
+
+const LEVELS = [
+  {k:'suggest', label:'Suggest', hint:'Shows an idea, you do the work'},
+  {k:'draft', label:'Draft', hint:'Prepares it, you approve'},
+  {k:'undo', label:'Act with undo', hint:'Does it after 30 s unless you cancel'},
+  {k:'auto', label:'Act alone', hint:'Does it and logs it'},
+];
+
+const AGENTS = [
+  { id:'inbox-lune', name:'Inbox agent', module:'inbox', client:'lune', owner:'Karim Benali', status:'active', week:412, rate:94,
+    mission:'Answer routine messages on Maison Lune profiles and route the rest to the right person.',
+    profiles:['lune-ig','lune-fb','lune-li'],
+    triggers:['New comment or private message','Every day, 7 am to 10 pm','Not on posts labeled "Campaign legal"'],
+    escalate:'Customer care team, then Karim Benali',
+    limits:'Up to 300 replies a day · Never more than 1 reply per person per hour',
+    actions:[ {n:'Thank-you replies', l:'auto'}, {n:'Shipping and FAQ answers', l:'draft'}, {n:'Complaints', l:'suggest', note:'Always assigned to a person'}, {n:'Hide spam and insults', l:'undo'}, {n:'Press and verified accounts', l:'suggest', locked:'Red list. Always handled by a person.'} ] },
+  { id:'inbox-velo', name:'Inbox agent', module:'inbox', client:'velo', owner:'Sophie Martin', status:'active', week:268, rate:89,
+    mission:'Answer routine messages on Vélo Nord profiles. Complaints go to support.',
+    profiles:['velo-ig','velo-fb'], triggers:['New comment or private message','Every day, 8 am to 8 pm'],
+    escalate:'Vélo Nord support team', limits:'Up to 200 replies a day',
+    actions:[ {n:'Thank-you replies', l:'auto'}, {n:'Shipping and FAQ answers', l:'draft'}, {n:'Complaints', l:'suggest', note:'Always assigned to a person'}, {n:'Hide spam and insults', l:'undo'} ] },
+  { id:'pub-lune', name:'Publishing agent', module:'publishing', client:'lune', owner:'Karim Benali', status:'active', week:9, rate:78,
+    mission:'Keep the Maison Lune calendar full with posts that match the playbook.',
+    profiles:['lune-ig','lune-fb','lune-li'], triggers:['Calendar gap of more than 2 days','A post performs 2× above average','Sensitive news detected'],
+    escalate:'Karim Benali', limits:'Up to 10 drafts a week · Never publishes without review',
+    actions:[ {n:'Fill calendar gaps', l:'draft'}, {n:'Recycle top posts', l:'suggest'}, {n:'Pause risky scheduled posts', l:'undo'}, {n:'Publish without review', l:'suggest', locked:'Not available for this client.'} ] },
+  { id:'pub-brio', name:'Publishing agent', module:'publishing', client:'brio', owner:'Sophie Martin', status:'active', week:12, rate:83,
+    mission:'Prepare the monthly calendar for Café Brio, then send it to the client for approval.',
+    profiles:['brio-ig','brio-li'], triggers:['Every month, on the 20th'], escalate:'Sophie Martin, then the client approver',
+    limits:'Up to 15 drafts a month', actions:[ {n:'Prepare monthly calendar', l:'draft'}, {n:'Send to client approval', l:'draft'} ] },
+  { id:'listen', name:'Listening agent', module:'listening', client:'velo', owner:'Sophie Martin', status:'active', week:31, rate:72,
+    mission:'Spot topics and mentions that matter to Vélo Nord and turn them into actions.',
+    profiles:['velo-ig','velo-fb'], triggers:['Topic volume up more than 150%','Brand mention without a tag'],
+    escalate:'Sophie Martin', limits:'Up to 5 alerts a day',
+    actions:[ {n:'Trend alerts', l:'auto'}, {n:'Untagged mentions to Inbox', l:'draft'}, {n:'Post ideas from trends', l:'suggest'} ] },
+  { id:'rep-brio', name:'Reporting agent', module:'reports', client:'brio', owner:'Sophie Martin', status:'paused', week:0, rate:91,
+    mission:'Write the Café Brio monthly report and suggest changes based on results.',
+    profiles:['brio-ig','brio-li'], triggers:['Last day of the month'], escalate:'Sophie Martin', limits:'1 report a month',
+    actions:[ {n:'Monthly report', l:'draft'}, {n:'Calendar changes from insights', l:'suggest'} ] },
+];
+const agentById = id => AGENTS.find(a=>a.id===id);
+
+const INIT_DECISIONS = [
+  { id:'d1', uc:'I4', agent:'inbox-lune', profile:'lune-fb', urgency:'high', kind:'Possible crisis', title:'A 1-star review is spreading fast',
+    context:'Shared 40 times in 2 hours · 18 negative comments', quote:'"Ordered a lamp for my mother\'s birthday, arrived broken, no answer for 10 days. Avoid."',
+    draft:'We\'re really sorry about this. Our team is on it and will message you privately today to fix it.',
+    extra:'3 scheduled posts on this profile are paused for 2 hours.',
+    why:'Activity on this post is 6× above normal. Crisis rule: pause scheduled posts and suggest a holding reply.', conf:81,
+    approve:'Send reply', approveLog:'Holding reply sent, posts kept paused', undo:true },
+  { id:'d2', uc:'I3', agent:'inbox-velo', profile:'velo-ig', urgency:'high', kind:'Complaint', title:'@julien.r is unhappy about a late order',
+    context:'Private message · 3rd message this month', quote:'"Third time my order is late. Nobody answers my emails."',
+    draft:'Hi Julien, sorry for the wait. I\'m passing your order to our support team right now, they\'ll get back to you within the hour.',
+    why:'Negative sentiment and 2 earlier messages. Rule: complaints always go to a person. Suggested owner: support team.', conf:74,
+    approve:'Assign to support', approveLog:'Assigned to Vélo Nord support with suggested reply', secondary:'Reply myself' },
+  { id:'d3', uc:'I2', agent:'inbox-lune', profile:'lune-ig', urgency:'med', kind:'FAQ', title:'@marie_dsgn asks about shipping to Belgium',
+    context:'Comment on "New spring collection" · +6 similar questions', quote:'"Do you ship to Belgium?"',
+    draft:'Hi Marie! Yes, we ship to Belgium in 3 to 5 days. Shipping is free from 60 €.',
+    why:'Matches saved reply "Shipping abroad". Tone from the Maison Lune playbook.', conf:92,
+    approve:'Send to all 7', approveLog:'7 replies sent', undo:true, editable:true },
+  { id:'d4', uc:'I6', agent:'inbox-lune', profile:'lune-li', urgency:'high', kind:'Press', title:'A journalist wants to interview the founder',
+    context:'Claire Dubois · Le Journal du Design · verified account', quote:'"Could we interview your founder next week for our spring issue?"',
+    why:'Verified press account. Red list: press messages are never answered by an agent.', conf:null,
+    approve:'Assign to Karim', approveLog:'Assigned to Karim Benali', noDraft:true },
+  { id:'d5', uc:'P1', agent:'pub-lune', profile:'lune-ig', urgency:'med', kind:'Drafts', title:'3 posts to fill next week',
+    context:'Gaps on Tuesday, Thursday and Saturday', list:['Tue 9 am · Behind the scenes: how a lamp is made (carousel)','Thu 6 pm · Customer photo of the month (repost with credit)','Sat 11 am · Spring colors, 3 ways to style them (Reel)'],
+    why:'Based on your 5 best posts this quarter and the Maison Lune playbook.', conf:86,
+    approve:'Schedule all 3', approveLog:'3 posts scheduled', editable:true },
+  { id:'d6', uc:'P3', agent:'pub-lune', profile:'lune-fb', urgency:'high', kind:'Paused post', title:'"Flash sale tonight" was paused',
+    context:'Was scheduled today at 6 pm', quote:'"⚡ Flash sale tonight only: -30% on all lamps!"',
+    why:'Major breaking news on a national tragedy. Rule: pause promotional posts on sensitive news days.', conf:88,
+    approve:'Keep paused', approveLog:'Post kept paused, moved to drafts', secondary:'Publish anyway' },
+  { id:'d7', uc:'L1', agent:'listen', profile:'velo-ig', urgency:'med', kind:'Trend', title:'#bikecommute is up 300% in your audience',
+    context:'Last 48 hours · 1,240 posts', list:['Angle 1: "Your commute, our bikes" · share customer routes','Angle 2: "5 tips for your first winter ride"'],
+    why:'Volume 3× above the 30-day average among people who follow Vélo Nord.', conf:79,
+    approve:'Create 2 drafts', approveLog:'2 drafts created in Publishing' },
+  { id:'d8', uc:'R2', agent:'rep-brio', profile:'brio-ig', urgency:'low', kind:'Insight', title:'Reels get 3× more engagement than carousels',
+    context:'Café Brio · October results', draft:'Turn the 2 carousels planned next week into Reels.',
+    why:'Average engagement rate: Reels 6.2%, carousels 2.1%, over 24 posts.', conf:83,
+    approve:'Apply change', approveLog:'2 carousels switched to Reels' },
+  { id:'d9', uc:'A2', agent:'inbox-lune', profile:'lune-ig', urgency:'low', kind:'Autonomy', title:'Let the agent send thank-you replies alone?',
+    context:'You approved 50 replies of this type without edits', draft:'Change "Thank-you replies" from Draft to Act alone on Maison Lune.',
+    why:'50 of 50 approved as is over 14 days. You can switch it back at any time.', conf:null,
+    approve:'Allow', approveLog:'"Thank-you replies" now Act alone', need:'grantAuto', fallback:'Ask an admin' },
+  { id:'d10', uc:'P6', agent:'pub-lune', profile:'lune-ig', urgency:'low', kind:'New rule', title:'Add an informal greeting rule to the playbook?',
+    context:'Greetings were rewritten 3 times this week', draft:'On Instagram, start with "Hello 👋" instead of "Bonjour".',
+    why:'Same edit on 3 drafts in a row. Rules are never added without a person.', conf:null,
+    approve:'Add to playbook', approveLog:'Rule added to the Maison Lune playbook', need:'validateRules', fallback:'Suggest to an admin' },
+  { id:'d11', uc:'P4', agent:'pub-brio', profile:'brio-ig', urgency:'med', kind:'Client review', title:'December calendar is ready for Café Brio',
+    context:'12 posts · Instagram and LinkedIn', list:['4 product posts','4 community posts','4 seasonal posts (Christmas, New Year)'],
+    why:'Built from the Café Brio playbook. The client sees only the posts, in the approval flow.', conf:84,
+    approve:'Send to client', approveLog:'12 posts sent to Thomas Girard for approval' },
+];
+
+const INIT_LOG = [
+  { t:'9:41', who:'Inbox agent · Maison Lune', ag:true, act:'Replied to a thank-you comment', profile:'lune-ig', res:'Sent alone', why:'Rule "Thank-you replies" (Act alone, granted by Karim Benali on Nov 3).', undo:true },
+  { t:'9:38', who:'Inbox agent · Maison Lune', ag:true, act:'Hid a spam comment', profile:'lune-fb', res:'Done, undo window closed', why:'Matched spam pattern (link + "earn money").', undo:true },
+  { t:'9:30', who:'Karim Benali', ag:false, act:'Approved 4 FAQ replies', profile:'lune-ig', res:'Sent', why:'Drafted by Inbox agent, approved without edits.' },
+  { t:'9:12', who:'Inbox agent · Vélo Nord', ag:true, act:'Assigned a complaint to support', profile:'velo-fb', res:'Escalated', why:'Complaints always go to a person.' },
+  { t:'8:55', who:'Listening agent', ag:true, act:'Sent a trend alert', profile:'velo-ig', res:'Informed', why:'Topic volume up 300%.' },
+  { t:'8:20', who:'Léa Petit', ag:false, act:'Rejected a reply: "Wrong tone"', profile:'velo-ig', res:'Rejected', why:'Feedback sent to the agent.' },
+  { t:'7:02', who:'Publishing agent · Maison Lune', ag:true, act:'Paused "Flash sale tonight"', profile:'lune-fb', res:'Waiting for a decision', why:'Sensitive news rule.' },
+  { t:'Yesterday', who:'Inbox agent · Maison Lune', ag:true, act:'Replied to 118 thank-you comments', profile:'lune-ig', res:'Sent alone', why:'Rule "Thank-you replies".' },
+];
+
+const PLAYBOOK = {
+  org:{ name:'Organization', tone:['Warm, never pushy','Short sentences','Sign with the first name of the person who answers'], dont:['No promises on delivery dates','No discussion of prices in public replies','No political or religious topics'] },
+  lune:{ name:'Maison Lune', tone:['Use "vous" on Facebook and LinkedIn, "tu" on Instagram','One emoji max per reply'], dont:['Never mention competitors'], saved:['Shipping abroad','Returns and refunds','Opening hours of the showroom'],
+    pending:[ {r:'On Instagram, start with "Hello 👋" instead of "Bonjour".', from:'Learned from 3 edits by Karim Benali'}, {r:'Always add the product link when someone asks for a price.', from:'Suggested by Léa Petit'} ] },
+  velo:{ name:'Vélo Nord', tone:['Friendly, sporty','Use "tu" everywhere'], dont:['No medical advice'], saved:['Warranty','Delivery times'], pending:[ {r:'Never answer questions about e-bike batteries, assign to support.', from:'Learned from 5 escalations'} ] },
+  brio:{ name:'Café Brio', tone:['Cozy, local','Mention the neighborhood when possible'], dont:['No humor about coffee prices'], saved:['Opening hours'], pending:[ {r:'This client refuses humorous posts.', from:'Learned from 3 client rejections'} ] },
+};
+
+/* ---------------- state ---------------- */
+const S = { who:'sophie', view:'home', tab:'all', decisions:INIT_DECISIONS.map(d=>({...d})), log:INIT_LOG.map(l=>({...l})), openWhy:{}, editing:{}, rejecting:{}, agent:null,
+  pb:'lune', paused:{all:false,lune:false,velo:false,brio:false}, sim:null, levels:{} };
+AGENTS.forEach(a=>a.actions.forEach((x,i)=>S.levels[a.id+':'+i]=x.l));
+
+/* ---------------- helpers ---------------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const R = () => ROLES[S.who];
+const initials = n => n.split(' ').map(x=>x[0]).slice(0,2).join('');
+const person = (n, size=24) => `<span class="ap-avatar size-${size}"><span class="ap-avatar-initials">${initials(n)}</span></span>`;
+const profAv = (pid, size=32) => { const p=PROFILES[pid]; return `<span class="ap-avatar size-${size}"><span class="ap-avatar-initials">${CLIENTS[p.client].name[0]}</span>${size>=32?`<span class="ap-avatar-network"><i class="ap-icon-${p.net}"></i></span>`:''}</span>`; };
+const clientOf = d => PROFILES[d.profile].client;
+const modOf = d => agentById(d.agent).module;
+const sees = client => R().clients.includes(client);
+const visibleDecisions = () => S.decisions.filter(d => sees(clientOf(d)) && (R().modules.includes(modOf(d)) || R().modules.length===0));
+const canDecide = d => R().modules.includes(modOf(d)) && (!d.need || R()[d.need]);
+const visibleAgents = () => AGENTS.filter(a => sees(a.client));
+const URG = { high:['red','Urgent'], med:['orange','Today'], low:['grey','When you can'] };
+const agentLabel = a => `${a.name} · ${CLIENTS[a.client].name}`;
+
+function snack(text, undoFn){
+  $('snackText').textContent = text;
+  $('snackRight').innerHTML = undoFn ? `<button id="snackUndo">Undo</button>` : '';
+  $('snack').hidden = false;
+  if(undoFn) $('snackUndo').onclick = () => { undoFn(); $('snack').hidden = true; };
+  clearTimeout(snack.t); snack.t = setTimeout(()=>$('snack').hidden=true, undoFn?6000:2600);
+}
+function now(){ const d=new Date(); return d.getHours()+':'+String(d.getMinutes()).padStart(2,'0'); }
+function addLog(e){ S.log.unshift({t:now(), ...e}); }
+
+/* ---------------- role menu ---------------- */
+function renderWho(){
+  $('whoAvatar').innerHTML = person(R().name, 24);
+  $('whoName').textContent = 'Viewing as ' + R().name.split(' ')[0];
+  $('whoMenu').innerHTML = Object.entries(ROLES).map(([k,r]) => `
+    <div class="ap-action-dropdown-item${k===S.who?' sel':''}" data-who="${k}">${person(r.name,32)}
+      <div class="ap-action-dropdown-item-label-container"><span class="ap-action-dropdown-item-label b">${r.name}</span>
+      <span class="ap-action-dropdown-item-description">${r.role}<br>${r.desc}</span></div></div>`).join('')
+    + `<div class="ap-action-dropdown-divider"></div>
+       <label class="menu-foot"><span>Show use case codes</span><span class="ap-toggle-container"><input type="checkbox" id="ucToggle" ${document.body.classList.contains('show-uc')?'checked':''}><i></i></span></label>
+       <div class="menu-foot"><button class="ap-button stroked grey" id="resetBtn"><i class="ap-icon-refresh"></i><span>Reset the prototype</span></button></div>`;
+}
+$('whoBtn').onclick = e => { e.stopPropagation(); const m=$('whoMenu'); m.hidden=!m.hidden; $('whoBtn').setAttribute('aria-expanded', !m.hidden); };
+document.addEventListener('click', e => { if(!$('whoMenu').contains(e.target)) $('whoMenu').hidden = true; });
+$('whoMenu').addEventListener('click', e => {
+  const it = e.target.closest('[data-who]');
+  if(it){ S.who = it.dataset.who; S.agent=null; S.tab='all'; S.pb = R().clients[0] || 'lune'; $('whoMenu').hidden=true; render(); snack('Now viewing as '+R().name+' · '+R().role); }
+  if(e.target.id==='ucToggle'){ document.body.classList.toggle('show-uc', e.target.checked); }
+  if(e.target.closest('#resetBtn')){ location.reload(); }
+});
+
+/* ---------------- nav ---------------- */
+$('nav').addEventListener('click', e => {
+  const b = e.target.closest('.navitem'); if(!b) return;
+  if(b.dataset.out!==undefined){ snack('Modules stay as they are. Not part of this prototype.'); return; }
+  S.view = b.dataset.view; S.agent=null; render(); $('scroll').scrollTop=0;
+});
+
+/* ---------------- views ---------------- */
+const TITLES = { home:'Home', decisions:'Decisions', agents:'Agents', playbook:'Playbook', activity:'Activity', guardrails:'Guardrails' };
+
+function render(){
+  renderWho();
+  const ext = R().external;
+  document.querySelectorAll('.navitem[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view===S.view && !ext));
+  const n = ext ? 0 : visibleDecisions().filter(canDecide).length;
+  $('navCount').textContent = n; $('navCount').hidden = !n;
+  $('title').textContent = ext ? 'Mission Control' : (S.agent ? 'Agents' : TITLES[S.view]);
+  if(ext){ $('view').innerHTML = viewExternal(); return; }
+  const v = { home:viewHome, decisions:viewDecisions, agents:()=>S.agent?viewAgent():viewAgents(), playbook:viewPlaybook, activity:viewActivity, guardrails:viewGuardrails }[S.view];
+  $('view').innerHTML = v();
+}
+
+function viewExternal(){
+  return `<div class="ap-card"><div class="empty"><div class="ico"><i class="ap-icon-lock-on"></i></div>
+    <h2 class="ap-h3">Clients don't see Mission Control</h2>
+    <p class="muted">Thomas approves Café Brio posts in the shared approval flow, as today. When he rejects a post, his reason goes back to the agent and can become a rule in the Café Brio playbook.</p>
+    <span class="ap-tag grey uc"><span>P4 · P6</span></span></div></div>`;
+}
+
+/* --- home --- */
+function viewHome(){
+  const r = R(), vis = visibleDecisions(), mine = vis.filter(canDecide);
+  const crisis = vis.find(d=>d.id==='d1');
+  const top = [...vis].sort((a,b)=>'hml'.indexOf(a.urgency[0])-'hml'.indexOf(b.urgency[0])).slice(0,4);
+  const ags = visibleAgents();
+  const scale = r.clients.length/3;
+  const access = [
+    [true, `See agents and activity for ${r.clients.map(c=>CLIENTS[c].name).join(', ')}`],
+    [r.modules.length>0, r.modules.length ? `Approve or reject in ${r.modules.map(m=>MODULES[m]).join(', ')}` : 'Approve or reject decisions'],
+    [r.configure, 'Create and change agents'],
+    [r.grantAuto, 'Let an agent act alone'],
+    [r.validateRules, 'Add rules to the playbook'],
+    [r.pause, 'Pause agents on your profiles'],
+    [r.guardrails, 'Change limits, red list and AI budget'],
+  ];
+  return `
+  <div class="hello"><h1 class="ap-h2">Good morning, ${r.name.split(' ')[0]}</h1><p class="muted">Here is what your agents did since yesterday 6 pm.</p></div>
+  ${crisis ? `<div class="ap-infobox error has-title"><i class="ap-icon-warning"></i><div class="ap-infobox-content"><div class="ap-infobox-texts">
+      <span class="ap-infobox-title">Possible crisis on Maison Lune Facebook</span>
+      <span class="ap-infobox-message">A 1-star review was shared 40 times in 2 hours. Scheduled posts are paused for 2 hours.</span></div>
+      <button class="ap-button stroked grey" data-go="decisions"><span>Review</span></button></div></div>` : ''}
+  <div class="tiles">
+    <div class="tile"><div class="muted xs">Handled by agents</div><div class="v">${Math.round(142*scale)}</div><div class="muted xs">messages and posts</div></div>
+    <div class="tile"><div class="muted xs">Sent alone</div><div class="v">${Math.round(118*scale)}</div><div class="muted xs">all in the activity log</div></div>
+    <div class="tile"><div class="muted xs">Waiting for you</div><div class="v">${mine.length}</div><div class="muted xs">${vis.length-mine.length ? (vis.length-mine.length)+' more need someone else' : 'decisions'}</div></div>
+    <div class="tile"><div class="muted xs">Time saved this week</div><div class="v">${(6.7*scale).toFixed(1).replace('.0','')} h</div><div class="muted xs">based on average reply time</div></div>
+  </div>
+  <div class="two">
+    <section class="ap-card pad">
+      <div class="sec-head"><h2 class="ap-h4">Next decisions</h2><span class="spacer"></span><button class="ap-button ghost blue" data-go="decisions"><span>See all</span></button></div>
+      <div>${top.length ? top.map(d=>{ const [c,l]=URG[d.urgency]; return `<div class="mini-dec" data-go="decisions">${profAv(d.profile,32)}<div class="t"><div class="b">${esc(d.title)}</div><div class="muted xs">${d.kind} · ${CLIENTS[clientOf(d)].name}</div></div><span class="ap-status ${c}">${l}</span></div>`; }).join('') : '<p class="muted">Nothing waiting. Your agents are handling the rest.</p>'}</div>
+    </section>
+    <section class="ap-card pad">
+      <div class="sec-head"><h2 class="ap-h4">Agents</h2><span class="spacer"></span><button class="ap-button ghost blue" data-go="agents"><span>Manage</span></button></div>
+      <div>${ags.map(a=>`<div class="health"><div class="ag-ico"><i class="ap-icon-${MOD_ICON[a.module]}"></i></div><div class="spacer"><div class="b">${a.name}</div><div class="muted xs">${CLIENTS[a.client].name}</div></div>${statusTag(a)}</div>`).join('')}</div>
+    </section>
+  </div>
+  <section class="ap-card pad access">
+    <div class="sec-head"><div><h2 class="ap-h4">What you can do here</h2><p class="muted">${r.role}. Agents never get more rights than the people who manage them.</p></div></div>
+    <ul>${access.map(([ok,t])=>`<li class="${ok?'yes':'no'}"><i class="ap-icon-${ok?'check':'close'}"></i><span${ok?'':' class="muted"'}>${t}</span></li>`).join('')}</ul>
+  </section>`;
+}
+function statusTag(a){
+  const paused = a.status==='paused' || S.paused.all || S.paused[a.client];
+  return paused ? `<span class="ap-status grey">Paused</span>` : `<span class="ap-status green">Active</span>`;
+}
+
+/* --- decisions --- */
+function viewDecisions(){
+  const vis = visibleDecisions();
+  const mods = ['all', ...Object.keys(MODULES).filter(m=>vis.some(d=>modOf(d)===m))];
+  if(!mods.includes(S.tab)) S.tab='all';
+  const list = vis.filter(d => S.tab==='all' || modOf(d)===S.tab)
+    .sort((a,b)=>'hml'.indexOf(a.urgency[0])-'hml'.indexOf(b.urgency[0]));
+  const readOnly = R().modules.length===0;
+  return `
+  ${readOnly ? `<div class="ap-infobox info"><i class="ap-icon-info"></i><div class="ap-infobox-content"><div class="ap-infobox-texts"><span class="ap-infobox-message">You have read-only access. You can follow decisions, not approve them.</span></div></div></div>` : ''}
+  <div class="filters"><div class="ap-tabs"><div class="ap-tabs-nav" role="tablist">${mods.map(m=>{ const n = vis.filter(d=>m==='all'||modOf(d)===m).length;
+      return `<button class="ap-tabs-tab${m===S.tab?' active':''}" data-tab="${m}">${m==='all'?'All':MODULES[m]}<span class="ap-counter normal ${m===S.tab?'blue':'grey'}">${n}</span></button>`; }).join('')}</div></div></div>
+  ${list.length ? list.map(decCard).join('') : `<div class="ap-card"><div class="empty"><div class="ico"><i class="ap-icon-rounded-check"></i></div><h2 class="ap-h3">All caught up</h2><p class="muted">Your agents will bring new decisions here. Everything they did alone is in Activity.</p><button class="ap-button primary blue" data-go="activity"><span>See activity</span></button></div></div>`}`;
+}
+
+function decCard(d){
+  const a = agentById(d.agent), [uc,ul] = URG[d.urgency], p = PROFILES[d.profile];
+  const can = canDecide(d), hasModule = R().modules.includes(modOf(d));
+  let foot;
+  if(S.rejecting[d.id]){
+    foot = `<div class="reasons"><span class="muted">Why reject?</span>${['Wrong tone','Wrong information','Not needed','Other'].map(r=>`<span class="ap-tag grey" data-reject-reason="${d.id}" data-r="${r}"><span>${r}</span></span>`).join('')}
+      <span class="spacer"></span><button class="ap-button ghost grey" data-cancel-reject="${d.id}"><span>Cancel</span></button></div>`;
+  } else if(S.editing[d.id]){
+    foot = `<div class="acts"><button class="ap-button stroked grey" data-cancel-edit="${d.id}"><span>Cancel</span></button><button class="ap-button primary blue" data-approve="${d.id}" data-edited="1"><span>Save and ${d.approve.toLowerCase()}</span></button></div>`;
+  } else if(can){
+    foot = `<div class="acts">
+      <button class="ap-button stroked grey" data-reject="${d.id}"><i class="ap-icon-thumb-down"></i><span>Reject</span></button>
+      ${d.editable||d.draft&&!d.need ? `<button class="ap-button stroked grey" data-edit="${d.id}"><i class="ap-icon-pen"></i><span>Edit</span></button>` : ''}
+      ${d.secondary ? `<button class="ap-button stroked grey" data-secondary="${d.id}"><span>${d.secondary}</span></button>` : ''}
+      <button class="ap-button primary blue" data-approve="${d.id}"><i class="ap-icon-check"></i><span>${d.approve}</span></button></div>`;
+  } else if(hasModule && d.fallback){
+    foot = `<span class="blocked muted xs"><i class="ap-icon-lock-on"></i>Only an admin can ${d.need==='grantAuto'?'let an agent act alone':'change the playbook'}.</span>
+      <div class="acts"><button class="ap-button stroked grey" data-fallback="${d.id}"><span>${d.fallback}</span></button></div>`;
+  } else {
+    foot = `<span class="blocked muted xs"><i class="ap-icon-lock-on"></i>${R().modules.length ? 'You don\'t have '+MODULES[modOf(d)]+' rights on this profile.' : 'Read-only access.'} Someone with access will decide.</span>`;
+  }
+  const draftBlock = S.editing[d.id]
+    ? `<div class="ap-textarea-field autoresize"><label>Suggested ${d.list?'posts':'reply'}</label><textarea id="ed-${d.id}" rows="3">${esc(d.draft || (d.list||[]).join('\n'))}</textarea></div>`
+    : d.draft ? `<div class="draft"><div class="lbl muted xs b">${d.kind==='Autonomy'||d.kind==='New rule'||d.kind==='Insight' ? 'Proposed change' : 'Suggested reply'}</div><div>${esc(d.draft)}</div></div>`
+    : d.list ? `<div class="draft"><div class="lbl muted xs b">Proposal</div><ul>${d.list.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>` : '';
+  return `<article class="ap-card dec" id="card-${d.id}">
+    <div class="dec-meta"><span class="ap-status ${uc}">${ul}</span><span class="b">${d.kind}</span><span class="sep">·</span>
+      ${profAv(d.profile,24)}<span>${CLIENTS[p.client].name} ${p.handle.startsWith('@')?p.handle:''}</span><span class="sep">·</span>
+      <span class="muted">${a.name}</span><span class="spacer"></span><span class="ap-tag grey mini uc"><span>${d.uc}</span></span></div>
+    <h3>${esc(d.title)}</h3>
+    <div class="muted">${esc(d.context)}</div>
+    ${d.quote ? `<div class="quote">${esc(d.quote)}</div>` : ''}
+    ${draftBlock}
+    ${d.extra ? `<div class="row xs"><i class="ap-icon-pause"></i><span>${esc(d.extra)}</span></div>` : ''}
+    ${S.openWhy[d.id] ? `<div class="why"><span class="b xs">Why this proposal</span><span>${esc(d.why)}</span>${d.conf?`<span class="muted xs">Confidence ${d.conf}%</span>`:''}<span class="muted xs">Agent owner: ${a.owner}</span></div>` : ''}
+    <div class="dec-foot"><button class="ap-button ghost blue" data-why="${d.id}"><span>${S.openWhy[d.id]?'Hide':'Why?'}</span></button>${foot}</div>
+  </article>`;
+}
+
+function resolve(id, logText, undoable){
+  const d = S.decisions.find(x=>x.id===id), idx = S.decisions.indexOf(d), a = agentById(d.agent);
+  const el = $('card-'+id); if(el) el.classList.add('leaving');
+  setTimeout(()=>{
+    S.decisions.splice(idx,1); delete S.editing[id]; delete S.rejecting[id];
+    addLog({ who:R().name, ag:false, act:logText, profile:d.profile, res: undoable?'Sent, undo for 30 s':'Done', why:`${a.name} proposal (${d.kind}). ${d.why}`, undo:!!undoable });
+    if(d.id==='d9'){ S.levels['inbox-lune:0']='auto'; }
+    render();
+    snack(logText, undoable ? () => { S.decisions.splice(idx,0,d); S.log.shift(); render(); snack('Cancelled. Nothing was sent.'); } : null);
+  }, 220);
+}
+
+/* --- agents --- */
+function viewAgents(){
+  const ags = visibleAgents(), r = R();
+  return `
+  <div class="sec-head"><div><h2 class="ap-h3">Your agents</h2><p class="muted">Each agent works on one client, in one module, within the limits you set.</p></div><span class="spacer"></span>
+    ${r.configure ? `<button class="ap-button primary blue" id="newAgent"><i class="ap-icon-plus"></i><span>New agent</span></button>` : ''}</div>
+  <div class="ap-card"><table class="ap-table"><thead><tr><th>Agent</th><th>Client</th><th>Owner</th><th>This week</th><th>Approved as is</th><th>Status</th></tr></thead><tbody>
+  ${ags.map(a=>`<tr class="click" data-agent="${a.id}"><td><div class="ag-name"><div class="ag-ico"><i class="ap-icon-${MOD_ICON[a.module]}"></i></div><div><div class="b">${a.name}</div><div class="muted xs">${MODULES[a.module]}</div></div></div></td>
+    <td>${CLIENTS[a.client].name}</td><td><div class="row">${person(a.owner,24)}<span>${a.owner}</span></div></td>
+    <td>${a.week} actions</td><td>${a.rate}%</td><td>${statusTag(a)}</td></tr>`).join('')}
+  </tbody></table></div>`;
+}
+
+function viewAgent(){
+  const a = agentById(S.agent), r = R(), canEdit = r.configure, canPause = r.pause;
+  const paused = a.status==='paused';
+  const sim = S.sim===a.id;
+  return `
+  <div class="sec-head"><button class="ap-icon-button" data-back aria-label="Back to agents"><i class="ap-icon-arrow-left"></i></button>
+    <div class="ag-ico"><i class="ap-icon-${MOD_ICON[a.module]}"></i></div>
+    <div><h2 class="ap-h3">${agentLabel(a)}</h2><p class="muted xs">Owner ${a.owner} · ${MODULES[a.module]}</p></div>${statusTag(a)}<span class="spacer"></span>
+    ${canEdit ? `<button class="ap-button stroked grey" data-sim="${a.id}"><i class="ap-icon-play"></i><span>Test on past messages</span></button>` : ''}
+    ${paused ? (canEdit ? `<button class="ap-button primary blue" data-resume="${a.id}"><i class="ap-icon-play"></i><span>Resume</span></button>` : '')
+             : (canPause ? `<button class="ap-button stroked red" data-pause="${a.id}"><i class="ap-icon-pause"></i><span>Pause</span></button>` : '')}
+  </div>
+  ${!canEdit ? `<div class="ap-infobox info"><i class="ap-icon-info"></i><div class="ap-infobox-content"><div class="ap-infobox-texts"><span class="ap-infobox-message">You can see this agent. Only admins can change it${canPause?', but you can pause it at any time':''}.</span></div></div></div>` : ''}
+  ${sim==='loading' ? '' : sim ? `<div class="ap-infobox success has-title"><i class="ap-icon-rounded-check"></i><div class="ap-infobox-content"><div class="ap-infobox-texts"><span class="ap-infobox-title">Test on the last 100 messages</span><span class="ap-infobox-message">71 handled the way your team did · 22 drafts for you · 7 escalated. 2 replies would differ from what your team sent.</span></div></div></div>` : ''}
+  <section class="ap-card pad"><h2 class="ap-h4">Mission</h2>
+    <div class="kv"><span class="muted">What it does</span><span>${a.mission}</span>
+      <span class="muted">Profiles</span><div class="tags">${a.profiles.map(pid=>`<span class="row">${profAv(pid,24)}<span>${PROFILES[pid].handle}</span></span>`).join('')}</div>
+      <span class="muted">When it acts</span><div class="tags">${a.triggers.map(t=>`<span class="ap-tag grey"><span>${esc(t)}</span></span>`).join('')}</div>
+      <span class="muted">Escalates to</span><span>${a.escalate}</span>
+      <span class="muted">Limits</span><span>${a.limits}</span>
+      <span class="muted">Playbook</span><span>Organization + ${CLIENTS[a.client].name}</span></div>
+  </section>
+  <section class="ap-card pad">
+    <div><h2 class="ap-h4">Autonomy</h2><p class="muted">Set how far the agent can go for each type of action.</p></div>
+    <div class="lvl-legend">${LEVELS.map(l=>`<div><div class="b">${l.label}</div><div class="muted xs">${l.hint}</div></div>`).join('')}</div>
+    <table class="ap-table auto-table"><thead><tr><th>Action</th>${LEVELS.map(l=>`<th class="c">${l.label}</th>`).join('')}</tr></thead><tbody>
+    ${a.actions.map((x,i)=>{ const key=a.id+':'+i, cur=S.levels[key];
+      return `<tr><td><div class="b">${x.n}</div>${x.locked?`<div class="muted xs"><i class="ap-icon-lock-on"></i> ${x.locked}</div>`:x.note?`<div class="muted xs">${x.note}</div>`:''}</td>
+      ${LEVELS.map(l=>{ const dis = !canEdit || x.locked || (l.k==='auto' && !r.grantAuto);
+        return `<td class="c"><label class="ap-radio-container" title="${dis&&canEdit&&l.k==='auto'?'Only admins can let an agent act alone':''}"><input type="radio" name="${key}" value="${l.k}" ${cur===l.k?'checked':''} ${dis?'disabled':''} data-level="${key}"><span></span></label></td>`; }).join('')}</tr>`; }).join('')}
+    </tbody></table>
+  </section>`;
+}
+
+/* --- playbook --- */
+function viewPlaybook(){
+  const r = R(), keys = ['org', ...r.clients];
+  if(!keys.includes(S.pb)) S.pb = keys[1] || 'org';
+  const pb = PLAYBOOK[S.pb];
+  return `
+  <div class="sec-head"><div><h2 class="ap-h3">Playbook</h2><p class="muted">Shared memory for all agents. Client rules override organization rules.</p></div></div>
+  <div class="ap-tabs"><div class="ap-tabs-nav">${keys.map(k=>`<button class="ap-tabs-tab${k===S.pb?' active':''}" data-pb="${k}">${PLAYBOOK[k].name}${PLAYBOOK[k].pending?.length?`<span class="ap-counter normal orange">${PLAYBOOK[k].pending.length}</span>`:''}</button>`).join('')}</div></div>
+  ${pb.pending?.length ? `<section class="ap-card pad"><div><h2 class="ap-h4">Suggested rules</h2><p class="muted">Learned from your edits and rejections. Never added without a person.</p></div>
+    <div>${pb.pending.map((p,i)=>`<div class="rule"><i class="ap-icon-sparkles"></i><div class="t"><div>${esc(p.r)}</div><div class="muted xs">${esc(p.from)}</div></div>
+      ${r.validateRules ? `<button class="ap-button stroked grey" data-rule-no="${i}"><span>Dismiss</span></button><button class="ap-button primary blue" data-rule-yes="${i}"><span>Add rule</span></button>`
+        : `<span class="muted xs">Waiting for an admin</span>`}</div>`).join('')}</div></section>` : ''}
+  <section class="ap-card pad"><h2 class="ap-h4">Tone of voice</h2><div>${pb.tone.map(t=>`<div class="rule"><i class="ap-icon-check"></i><div class="t">${esc(t)}</div></div>`).join('')}</div></section>
+  <section class="ap-card pad"><h2 class="ap-h4">Never do</h2><div>${pb.dont.map(t=>`<div class="rule"><i class="ap-icon-close"></i><div class="t">${esc(t)}</div></div>`).join('')}</div></section>
+  ${pb.saved ? `<section class="ap-card pad"><h2 class="ap-h4">Saved replies agents can use</h2><div class="tags">${pb.saved.map(t=>`<span class="ap-tag grey"><span>${esc(t)}</span></span>`).join('')}</div></section>` : ''}
+  ${!r.validateRules ? `<div class="row muted xs"><i class="ap-icon-lock-on"></i><span>You can suggest rules from any decision. Admins add them.</span></div>` : ''}`;
+}
+
+/* --- activity --- */
+function viewActivity(){
+  const scope = S.log.filter(l => sees(PROFILES[l.profile].client));
+  const f = S.actFilter || 'all';
+  const rows = scope.filter(l => f==='all' || (f==='agents' ? l.ag : !l.ag));
+  return `
+  <div class="sec-head"><div><h2 class="ap-h3">Activity</h2><p class="muted">Everything agents and people did, with the reason.</p></div><span class="spacer"></span>
+    <button class="ap-button stroked grey" id="export"><i class="ap-icon-download"></i><span>Export</span></button></div>
+  <div class="ap-tabs"><div class="ap-tabs-nav">${[['all','All'],['agents','Agents'],['people','People']].map(([k,l])=>`<button class="ap-tabs-tab${k===f?' active':''}" data-act="${k}">${l}</button>`).join('')}</div></div>
+  <div class="ap-card"><table class="ap-table"><thead><tr><th>Time</th><th>Who</th><th>What</th><th>Profile</th><th>Result</th><th></th></tr></thead><tbody>
+  ${rows.map((l,i)=>{ const gi = S.log.indexOf(l); return `<tr><td class="muted">${l.t}</td>
+    <td><div class="row">${l.ag?`<div class="ag-ico"><i class="ap-icon-sparkles"></i></div>`:person(l.who,32)}<span>${esc(l.who)}</span></div></td>
+    <td>${esc(l.act)}${S.openLog===gi?`<div class="muted xs" style="margin-top:4px">${esc(l.why)}</div>`:''}</td>
+    <td>${profAv(l.profile,32)}</td>
+    <td><span class="ap-status ${l.res.startsWith('Rejected')||l.res.startsWith('Cancelled')?'grey':l.res.startsWith('Escalated')||l.res.startsWith('Waiting')?'orange':'green'}">${l.res}</span></td>
+    <td><div class="row"><button class="ap-button ghost blue" data-log-why="${gi}"><span>${S.openLog===gi?'Hide':'Why?'}</span></button>
+      ${l.undo && R().modules.length ? `<button class="ap-button ghost grey" data-log-undo="${gi}"><span>Undo</span></button>` : ''}</div></td></tr>`; }).join('')}
+  </tbody></table></div>`;
+}
+
+/* --- guardrails --- */
+function viewGuardrails(){
+  const r = R();
+  const clients = r.clients;
+  return `
+  <div class="sec-head"><div><h2 class="ap-h3">Guardrails</h2><p class="muted">Limits that apply to every agent, whatever their settings.</p></div></div>
+  <section class="ap-card pad"><div><h2 class="ap-h4">Emergency pause</h2><p class="muted">Stops all replies and scheduled posts by agents. Anyone with access to a client can pause it, only admins can resume.</p></div>
+    <div>
+      ${r.guardrails ? `<div class="switch-row"><div class="spacer"><div class="b">All clients</div><div class="muted xs">Every agent in the organization</div></div><label class="ap-toggle-container"><input type="checkbox" data-pause-scope="all" ${S.paused.all?'checked':''}><i></i></label></div>` : ''}
+      ${clients.map(c=>{ const on = S.paused[c]||S.paused.all; const lock = on && !r.configure;
+        return `<div class="switch-row"><div class="spacer"><div class="b">${CLIENTS[c].name}</div><div class="muted xs">${AGENTS.filter(a=>a.client===c).length} agents${lock?' · Paused. Ask an admin to resume.':''}</div></div>
+        <label class="ap-toggle-container"><input type="checkbox" data-pause-scope="${c}" ${on?'checked':''} ${(!r.pause || lock || S.paused.all)?'disabled':''}><i></i></label></div>`; }).join('')}
+    </div></section>
+  ${r.guardrails ? `
+  <section class="ap-card pad"><h2 class="ap-h4">Red list</h2><p class="muted">These always go to a person, whatever the autonomy level.</p>
+    <div class="tags">${['Press and journalists','Verified accounts','Legal threats','Health or safety issues','Words: lawyer, refund fraud, lawsuit'].map(t=>`<span class="ap-tag red"><span>${t}</span></span>`).join('')}<span class="ap-tag grey"><span>+ Add</span></span></div></section>
+  <section class="ap-card pad"><h2 class="ap-h4">Limits</h2>
+    <div class="kv"><span class="muted">Quiet hours</span><span>No messages sent alone from 10 pm to 7 am</span>
+    <span class="muted">Max actions alone</span><span>500 a day for the organization</span>
+    <span class="muted">If budget runs out</span><span>Agents switch back to Suggest</span></div></section>
+  <section class="ap-card pad"><div class="sec-head"><h2 class="ap-h4">AI credits this month</h2><span class="spacer"></span><span class="b">7,420 of 10,000 used</span></div>
+    <div class="bar"><span style="width:74%"></span></div><p class="muted xs">Resets on December 1. You'll get an alert at 90%.</p></section>`
+  : `<div class="row muted xs"><i class="ap-icon-lock-on"></i><span>Red list, limits and AI budget are managed by organization admins.</span></div>`}`;
+}
+
+/* ---------------- events ---------------- */
+$('view').addEventListener('click', e => {
+  const t = e.target.closest('button, [data-go], [data-agent], .ap-tag[data-reject-reason]'); if(!t) return;
+  const ds = t.dataset;
+  if(ds.go){ S.view = ds.go; S.agent=null; render(); $('scroll').scrollTop=0; return; }
+  if(ds.tab){ S.tab = ds.tab; render(); return; }
+  if(ds.why){ S.openWhy[ds.why] = !S.openWhy[ds.why]; render(); return; }
+  if(ds.reject){ S.rejecting[ds.reject] = true; render(); return; }
+  if(ds.cancelReject){ delete S.rejecting[ds.cancelReject]; render(); return; }
+  if(ds.rejectReason){ resolveReject(ds.rejectReason, ds.r); return; }
+  if(ds.edit){ S.editing[ds.edit] = true; render(); const ta=$('ed-'+ds.edit); ta && ta.focus(); return; }
+  if(ds.cancelEdit){ delete S.editing[ds.cancelEdit]; render(); return; }
+  if(ds.approve){ const d=S.decisions.find(x=>x.id===ds.approve); resolve(d.id, (ds.edited?'Edited and ':'')+(ds.edited?d.approveLog.charAt(0).toLowerCase()+d.approveLog.slice(1):d.approveLog), d.undo); return; }
+  if(ds.secondary){ const d=S.decisions.find(x=>x.id===ds.secondary); resolve(d.id, d.secondary+' · '+d.title, false); return; }
+  if(ds.fallback){ const d=S.decisions.find(x=>x.id===ds.fallback); snack('Sent to Karim Benali for approval'); addLog({who:R().name, ag:false, act:d.fallback+': '+d.title, profile:d.profile, res:'Waiting for an admin', why:d.why}); return; }
+  if(ds.agent){ S.agent = ds.agent; S.sim=null; render(); $('scroll').scrollTop=0; return; }
+  if(ds.back!==undefined){ S.agent=null; render(); return; }
+  if(ds.sim){ S.sim='loading'; t.classList.add('loading'); setTimeout(()=>{ S.sim=ds.sim; render(); }, 1200); return; }
+  if(ds.pause){ agentById(ds.pause).status='paused'; addLog({who:R().name, ag:false, act:'Paused '+agentLabel(agentById(ds.pause)), profile:agentById(ds.pause).profiles[0], res:'Done', why:'Manual pause.'}); render(); snack('Agent paused. Nothing will be sent until an admin resumes it.'); return; }
+  if(ds.resume){ agentById(ds.resume).status='active'; render(); snack('Agent resumed'); return; }
+  if(ds.pb){ S.pb = ds.pb; render(); return; }
+  if(ds.ruleYes!==undefined || ds.ruleNo!==undefined){ const i = +(ds.ruleYes ?? ds.ruleNo); const p = PLAYBOOK[S.pb].pending.splice(i,1)[0];
+    if(ds.ruleYes!==undefined){ PLAYBOOK[S.pb].tone.push(p.r); snack('Rule added. All agents on this client will use it.'); } else snack('Rule dismissed'); render(); return; }
+  if(ds.act){ S.actFilter = ds.act; render(); return; }
+  if(ds.logWhy!==undefined){ S.openLog = S.openLog===+ds.logWhy ? null : +ds.logWhy; render(); return; }
+  if(ds.logUndo!==undefined){ const l=S.log[+ds.logUndo]; l.res='Cancelled'; l.undo=false; render(); snack('Action cancelled. The reply was deleted.'); return; }
+  if(t.id==='export'){ snack('Export ready: activity_november.csv'); return; }
+  if(t.id==='newAgent'){ snack('Agent creation is not part of this prototype'); return; }
+});
+$('view').addEventListener('change', e => {
+  const t = e.target;
+  if(t.dataset.level){ S.levels[t.dataset.level] = t.value; const l = LEVELS.find(x=>x.k===t.value);
+    snack('Autonomy set to '+l.label); addLog({who:R().name, ag:false, act:'Changed autonomy to '+l.label, profile:agentById(t.dataset.level.split(':')[0]).profiles[0], res:'Done', why:'Agent settings.'}); }
+  if(t.dataset.pauseScope){ const c=t.dataset.pauseScope; S.paused[c]=t.checked; render();
+    snack(t.checked ? (c==='all'?'All agents paused':CLIENTS[c].name+' agents paused') : 'Agents resumed'); }
+});
+function resolveReject(id, reason){
+  const d = S.decisions.find(x=>x.id===id);
+  resolve(id, 'Rejected: "'+reason+'" · '+d.title, false);
+  setTimeout(()=>{ S.log[0].res='Rejected'; render(); }, 260);
+}
+
+render();
+</script>
+</body>
+</html>
