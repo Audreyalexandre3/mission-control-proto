@@ -141,6 +141,25 @@
   .empty { text-align:center; padding:var(--ref-spacing-xl) var(--ref-spacing-md); display:flex; flex-direction:column; align-items:center; gap:var(--ref-spacing-xs); }
   .empty p { max-width:440px; }
 
+  /* journeys */
+  .guide { display:flex; align-items:center; gap:var(--ref-spacing-sm); padding:var(--ref-spacing-xs) var(--ref-spacing-md); background:var(--ref-color-electric-blue-10); border-bottom:1px solid var(--ref-color-grey-20); flex-shrink:0; }
+  .guide[hidden] { display:none; }
+  .guide-text { display:flex; flex-direction:column; gap:2px; min-width:0; flex:1; }
+  .guide-steps { display:flex; gap:4px; }
+  .guide-steps span { width:24px; height:4px; border-radius:4px; background:var(--ref-color-grey-20); }
+  .guide-steps span.on { background:var(--ref-color-electric-blue-100); }
+  .learn { display:flex; align-items:flex-start; gap:6px; color:var(--ref-color-grey-80); }
+  .learn i { margin-top:2px; }
+  .away { display:grid; grid-template-columns:1fr 1fr; gap:var(--ref-spacing-md); }
+  .away-col { display:flex; flex-direction:column; gap:var(--ref-spacing-xxs); min-width:0; }
+  .journeys { display:flex; flex-direction:column; gap:var(--ref-spacing-xs); }
+  .journey { display:flex; gap:var(--ref-spacing-xs); align-items:flex-start; text-align:left; width:100%; font:inherit; cursor:pointer; border:1px solid var(--ref-color-grey-20); border-radius:var(--ref-border-radius-md); padding:var(--ref-spacing-xs); background:var(--ref-color-white); color:var(--ref-color-grey-100); }
+  .journey:hover { border-color:var(--ref-color-electric-blue-100); }
+  .recap-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:var(--ref-spacing-xxs); }
+  .recap-list li { display:flex; gap:8px; align-items:flex-start; }
+  .recap-list i { color:var(--ref-color-green-150); margin-top:2px; }
+  .client-post { display:flex; flex-direction:column; gap:var(--ref-spacing-xxs); }
+
   /* O1 modals */
   .modal { padding:0; border:0; max-height:calc(100vh - 2 * var(--ref-spacing-xl)); }
   .modal:not([open]) { display:none; }
@@ -192,6 +211,7 @@
       <div class="page-header-left" id="headLeft"></div>
       <div class="page-header-right" id="headRight"></div>
     </header>
+    <div class="guide" id="guide" hidden></div>
     <div class="scroll" id="scroll"><div class="wrap" id="view"></div></div>
   </div>
 </div>
@@ -207,6 +227,15 @@
   <div class="cmd-foot ap-caption muted"><span>Mission Control acts across the app, within your rights.</span><span class="spacer"></span><span class="kbd">Enter</span><span>run</span><span class="kbd">Esc</span><span>close</span></div>
 </dialog>
 
+<dialog class="ap-dialog modal modal--classic" id="journeyDialog" aria-labelledby="jTitle">
+  <div class="modal-header ap-dialog-header">
+    <h2 id="jTitle" class="ap-h2">Pick a journey</h2>
+    <p class="ap-body muted">Each one follows a person from start to finish: agents work first, the person decides what is left, and agents learn from it.</p>
+    <button type="button" class="ap-icon-button modal-close" data-jclose aria-label="Close"><i class="ap-icon-close"></i></button>
+  </div>
+  <div class="ap-dialog-content modal-content" id="journeyBody"></div>
+  <div class="modal-footer"><div class="ap-dialog-footer-right" style="display:flex;justify-content:flex-end"><button type="button" class="ap-button ghost grey" data-jclose><span>Explore freely</span></button></div></div>
+</dialog>
 <dialog class="ap-dialog modal modal--classic" id="slackDialog" aria-labelledby="slackTitle">
   <header class="ap-dialog-header modal-header">
     <h2 id="slackTitle" class="ap-h2">Same decision, where you already are</h2>
@@ -272,50 +301,50 @@ const agentById = id => AGENTS.find(a=>a.id===id);
 
 /* Each decision = an ask (the question to the human) + the object it's about. */
 const INIT_DECISIONS = [
-  { id:'d1', uc:'I4', agent:'inbox-lune', profile:'lune-fb', urgency:'high', time:'8:12', ask:'Send a holding reply and keep posts paused?',
+  { id:'d1', learn:"Next time a review spreads like this, I pause posts and draft the holding reply before you arrive.", uc:'I4', agent:'inbox-lune', profile:'lune-fb', urgency:'high', time:'8:12', ask:'Send a holding reply and keep posts paused?',
     obj:{type:'msg', author:'Claire M.', handle:'1-star review', channel:'Facebook', text:'Ordered a lamp for my mother\'s birthday, arrived broken, no answer for 10 days. Avoid.', tags:['Shared 40 times in 2 h','18 negative comments']},
     draft:'We\'re really sorry about this. Our team is on it and will message you privately today to fix it.', side:'3 scheduled posts paused for 2 h',
     why:'Activity on this review is 6× above normal. Crisis rule: pause scheduled posts and suggest a holding reply.', conf:81, approve:'Send reply', approveLog:'Holding reply sent, posts kept paused', undo:true },
-  { id:'d2', uc:'I3', agent:'inbox-velo', profile:'velo-ig', urgency:'high', time:'9:58', ask:'Assign this complaint to support?',
+  { id:'d2', learn:"Next time, complaints from repeat customers go straight to support.", uc:'I3', agent:'inbox-velo', profile:'velo-ig', urgency:'high', time:'9:58', ask:'Assign this complaint to support?',
     obj:{type:'msg', author:'Julien R.', handle:'@julien.r', channel:'Private message', text:'Third time my order is late. Nobody answers my emails.', tags:['Negative','3rd message this month']},
     assign:{name:'Vélo Nord support', sub:'Gets the conversation and the suggested reply'},
     draft:'Hi Julien, sorry for the wait. I\'m passing your order to our support team right now, they\'ll get back to you within the hour.',
     why:'Negative sentiment and 2 earlier messages. Rule: complaints always go to a person.', conf:74, approve:'Assign to support', approveLog:'Assigned to Vélo Nord support with the suggested reply', secondary:'Reply myself' },
-  { id:'d3', uc:'I2', agent:'inbox-lune', profile:'lune-ig', urgency:'med', time:'9:40', ask:'Send this answer to 7 people?',
+  { id:'d3', learn:"Approve 2 more like this and I'll ask to send shipping answers alone.", uc:'I2', agent:'inbox-lune', profile:'lune-ig', urgency:'med', time:'9:40', ask:'Send this answer to 7 people?',
     obj:{type:'msg', author:'Marie D.', handle:'@marie_dsgn', channel:'Comment on "New spring collection"', text:'Do you ship to Belgium?', others:6},
     draft:'Hi Marie! Yes, we ship to Belgium in 3 to 5 days. Shipping is free from 60 €.',
     why:'Matches saved reply "Shipping abroad". Tone from the Maison Lune playbook.', conf:92, approve:'Send to all 7', approveLog:'7 replies sent', undo:true },
-  { id:'d4', uc:'I6', agent:'inbox-lune', profile:'lune-li', urgency:'high', time:'9:05', ask:'Who should answer this journalist?',
+  { id:'d4', learn:"Press stays on the red list. I'll keep sending it to Karim.", uc:'I6', agent:'inbox-lune', profile:'lune-li', urgency:'high', time:'9:05', ask:'Who should answer this journalist?',
     obj:{type:'msg', author:'Claire Dubois', handle:'Le Journal du Design', channel:'LinkedIn message', text:'Could we interview your founder next week for our spring issue?', tags:['Verified press account']},
     assign:{name:'Karim Benali', sub:'Handles press for Maison Lune', person:true},
     why:'Verified press account. Red list: press messages are never answered by an agent.', approve:'Assign to Karim', approveLog:'Assigned to Karim Benali' },
-  { id:'d5', uc:'P1', agent:'pub-lune', profile:'lune-ig', urgency:'med', time:'7:30', ask:'Schedule 3 posts to fill next week?',
+  { id:'d5', learn:"Next time, I fill gaps the same way and only show you the plan.", uc:'P1', agent:'pub-lune', profile:'lune-ig', urgency:'med', time:'7:30', ask:'Schedule 3 posts to fill next week?',
     obj:{type:'posts', posts:[{day:'Tue 9 am', fmt:'Carousel', text:'Behind the scenes: how a lamp is made'},{day:'Thu 6 pm', fmt:'Repost', text:'Customer photo of the month'},{day:'Sat 11 am', fmt:'Reel', text:'Spring colors, 3 ways to style them'}]},
     why:'Gaps on Tuesday, Thursday and Saturday. Based on your 5 best posts this quarter.', conf:86, approve:'Schedule all 3', approveLog:'3 posts scheduled' },
-  { id:'d6', uc:'P3', agent:'pub-lune', profile:'lune-fb', urgency:'high', time:'7:02', ask:'Keep this post paused?',
+  { id:'d6', learn:"Next time, I pause promotions on sensitive news days without asking.", uc:'P3', agent:'pub-lune', profile:'lune-fb', urgency:'high', time:'7:02', ask:'Keep this post paused?',
     obj:{type:'post', when:'Today, 6 pm', text:'⚡ Flash sale tonight only: -30% on all lamps!', status:['orange','Paused'], tags:['Sensitive news today']},
     why:'Major breaking news on a national tragedy. Rule: pause promotional posts on sensitive news days.', conf:88, approve:'Keep paused', approveLog:'Post kept paused, moved to drafts', secondary:'Publish anyway' },
-  { id:'d7', uc:'L1', agent:'listen', profile:'velo-ig', urgency:'med', time:'8:55', ask:'Turn this trend into 2 drafts?',
+  { id:'d7', learn:"Next time, trends this strong become drafts directly.", uc:'L1', agent:'listen', profile:'velo-ig', urgency:'med', time:'8:55', ask:'Turn this trend into 2 drafts?',
     obj:{type:'trend', metric:{name:'Posts about #bikecommute in your audience', v:'1,240', delta:'+300% vs last 30 days'},
       posts:[{day:'Idea 1', fmt:'Carousel', text:'Your commute, our bikes: share customer routes'},{day:'Idea 2', fmt:'Reel', text:'5 tips for your first winter ride'}]},
     why:'Volume 3× above the 30-day average among people who follow Vélo Nord.', conf:79, approve:'Create 2 drafts', approveLog:'2 drafts created in Publishing' },
-  { id:'d8', uc:'R2', agent:'rep-brio', profile:'brio-ig', urgency:'low', time:'Yesterday', ask:'Switch next week\'s 2 carousels to Reels?',
+  { id:'d8', learn:"Next time, I suggest Reels first for Café Brio.", uc:'R2', agent:'rep-brio', profile:'brio-ig', urgency:'low', time:'Yesterday', ask:'Switch next week\'s 2 carousels to Reels?',
     obj:{type:'compare', metrics:[{name:'Reels · engagement rate', v:'6.2%'},{name:'Carousels · engagement rate', v:'2.1%'}], from:'Carousel', to:'Reel', count:2},
     why:'October results on 24 posts.', conf:83, approve:'Apply change', approveLog:'2 carousels switched to Reels' },
-  { id:'d9', uc:'A2', agent:'inbox-lune', profile:'lune-ig', urgency:'low', time:'Yesterday', ask:'Let the agent send thank-you replies alone?',
+  { id:'d9', learn:"After this, thank-you replies stop coming here. About 50 fewer decisions a month.", uc:'A2', agent:'inbox-lune', profile:'lune-ig', urgency:'low', time:'Yesterday', ask:'Let the agent send thank-you replies alone?',
     obj:{type:'autonomy', action:'Thank-you replies', from:'Draft', to:'Act alone', proof:{name:'Approved without edits, last 14 days', v:'50 of 50'}},
     why:'You can switch it back at any time. Every reply stays in Activity.', approve:'Allow', approveLog:'"Thank-you replies" now Act alone', need:'grantAuto', fallback:'Ask an admin' },
-  { id:'d10', uc:'P6', agent:'pub-lune', profile:'lune-ig', urgency:'low', time:'Yesterday', ask:'Add this rule to the playbook?',
+  { id:'d10', learn:"After this, every Maison Lune draft starts with \"Hello 👋\".", uc:'P6', agent:'pub-lune', profile:'lune-ig', urgency:'low', time:'Yesterday', ask:'Add this rule to the playbook?',
     obj:{type:'rule', pb:'Maison Lune playbook · Instagram', rule:'Start replies with "Hello 👋"', before:'Bonjour', after:'Hello 👋', proof:'Same edit on 3 drafts this week'},
     why:'Rules are never added without a person.', approve:'Add rule', approveLog:'Rule added to the Maison Lune playbook', need:'validateRules', fallback:'Suggest to an admin' },
-  { id:'d11', uc:'P4', agent:'pub-brio', profile:'brio-ig', urgency:'med', time:'Nov 20', ask:'Send the December calendar to Café Brio?',
-    obj:{type:'posts', posts:[{day:'Dec 2', fmt:'Photo', text:'New winter blend'},{day:'Dec 6', fmt:'Reel', text:'Meet the baristas'},{day:'Dec 10', fmt:'Carousel', text:'Gift box ideas'}], more:9, approver:'Thomas Girard'},
+  { id:'d11', learn:"Next month, I send the calendar on the 20th without asking.", uc:'P4', agent:'pub-brio', profile:'brio-ig', urgency:'med', time:'Nov 20', ask:'Send the December calendar to Café Brio?',
+    obj:{type:'posts', posts:[{day:'Dec 2', fmt:'Photo', text:'New winter blend'},{day:'Dec 6', fmt:'Reel', text:'Meet the baristas'},{day:'Dec 10', fmt:'Carousel', text:'Coffee: cheaper than therapy ☕ Gift box ideas'}], more:9, approver:'Thomas Girard'},
     why:'Built from the Café Brio playbook. The client sees only the posts, in the approval flow.', conf:84, approve:'Send to client', approveLog:'12 posts sent to Thomas Girard for approval' },
-  { id:'d12', uc:'Q1', agent:'inbox-velo', profile:'velo-fb', urgency:'high', time:'10:12', ask:'How should I handle this refund?',
+  { id:'d12', learn:"Keep the box ticked and I won't ask about refunds over 200 € again.", uc:'Q1', agent:'inbox-velo', profile:'velo-fb', urgency:'high', time:'10:12', ask:'How should I handle this refund?',
     obj:{type:'msg', author:'Nina P.', handle:'Order #4821 · 240 €', channel:'Private message', text:'The frame arrived bent. I want my money back.', tags:['Above my 200 € limit']},
     question:{ opts:[{t:'Offer a store credit', d:'240 € credit, sent now'},{t:'Pass to support', d:'With the conversation'},{t:'Refund', d:'You confirm it in the shop'}], similar:'Do the same for refunds over 200 €', topic:'a refund is over 200 €' },
     why:'Refunds over 200 € are above my limit, and your playbook has no rule for this case.' },
-  { id:'d13', uc:'Q2', agent:'inbox-lune', profile:'lune-ig', urgency:'med', time:'9:22', ask:'What should I answer about the dimmer?',
+  { id:'d13', learn:"Keep the box ticked and I'll answer this question alone next time.", uc:'Q2', agent:'inbox-lune', profile:'lune-ig', urgency:'med', time:'9:22', ask:'What should I answer about the dimmer?',
     obj:{type:'msg', author:'Paul M.', handle:'@paul.m', channel:'Comment on "New spring collection"', text:'Does the Ova lamp work with a dimmer switch?', tags:['Not in the product sheet']},
     question:{ opts:[{t:'Yes, with LED dimmers', d:'I\'ll reply with that'},{t:'No', d:'I\'ll reply with that'},{t:'Ask the product team', d:'I\'ll wait for them'}], similar:'Save the answer for future questions on this lamp', topic:'someone asks if the Ova lamp works with a dimmer' },
     why:'No answer in the product sheet or saved replies. I won\'t guess on product facts.' },
@@ -343,7 +372,8 @@ const PLAYBOOK = {
 /* ================= state ================= */
 const S = { who:'sophie', view:'decisions', tab:'all', decisions:INIT_DECISIONS.map(d=>({...d})), log:INIT_LOG.map(l=>({...l})),
   openWhy:{}, editing:{}, rejecting:{}, steer:{}, qChoice:{}, focus:0, curList:[], agent:null, pb:'lune', actFilter:'all', openLog:null,
-  paused:{all:false, lune:false, velo:false, brio:false}, sim:null, levels:{} };
+  paused:{all:false, lune:false, velo:false, brio:false}, sim:null, levels:{},
+  j:null, jStep:0, jStart:0, made:0, learned:[], showOthers:false, client:{sent:false, req:null, reqOpen:false, done:false} };
 AGENTS.forEach(a=>a.actions.forEach((x,i)=>S.levels[a.id+':'+i]=x.l));
 
 /* ================= helpers ================= */
@@ -405,7 +435,7 @@ function renderShell(){
   $('whoAvatar').innerHTML = personAv(r.name, 24); $('whoName').textContent = r.name;
   $('mcNav').innerHTML = r.external ? '' : SECTIONS.map(s=>{ const cur = s.k===S.view;
     return `<button type="button" class="ap-list-panel-item${cur?' selected':''}" data-view="${s.k}" ${cur?'aria-current="page"':''}><i class="ap-icon-${s.icon}"></i><div class="ap-list-panel-item-text"><span class="ap-list-panel-item-name">${s.label}</span></div>${s.k==='decisions'&&n?`<span class="ap-counter normal blue">${n}</span>`:''}</button>`; }).join('');
-  $('whoMenu').innerHTML = `<div class="menu-foot"><span class="ap-caption-bold">Prototype: view as</span></div>` + Object.entries(ROLES).map(([k,x]) => `
+  $('whoMenu').innerHTML = `<div class="menu-foot">${btn('stroked grey','Pick a journey','id="jPickBtn"','play')}</div><div class="ap-action-dropdown-divider"></div><div class="menu-foot"><span class="ap-caption-bold">Prototype: view as</span></div>` + Object.entries(ROLES).map(([k,x]) => `
     <div class="ap-action-dropdown-item${k===S.who?' focused':''}" role="menuitemradio" aria-checked="${k===S.who}" data-who="${k}">${personAv(x.name,32)}
       <div class="ap-action-dropdown-item-label-container"><span class="ap-action-dropdown-item-label">${x.name}</span><span class="ap-action-dropdown-item-description">${x.role}. ${x.desc}</span></div></div>`).join('')
     + `<div class="ap-action-dropdown-divider"></div>
@@ -423,7 +453,7 @@ function renderHeader(){
     if(a.status==='paused'){ if(r.configure) Rt.push(btn('primary blue','Resume',`data-resume="${a.id}"`,'play')); }
     else if(r.pause) Rt.push(btn('stroked red','Pause',`data-pause="${a.id}"`,'pause'));
   } else {
-    L.push(`<h1 class="ap-h2">${SECTIONS.find(s=>s.k===v).label}</h1>`);
+    L.push(`<h1 class="ap-h2">${v==='recap' ? 'Journey complete' : SECTIONS.find(s=>s.k===v).label}</h1>`);
     Rt.push(cmd);
     if(v==='decisions' && r.modules.length){ Rt.unshift(tipBtn('info','Keyboard: J and K to move, A approve, R reject, E edit','')); Rt.push(btn('stroked grey','See it in Slack','id="slackBtn"','external-link')); }
     if(v==='objectives' && S.obj.phase==='list' && r.modules.includes('publishing') && sees('lune')) Rt.push(btn('primary blue','New objective','data-obj="new"','plus'));
@@ -435,8 +465,9 @@ function renderHeader(){
 }
 
 function render(){
-  renderShell(); renderHeader();
+  jCheck(); renderShell(); renderHeader(); renderGuide();
   const r = R(), wide = ['home','agents','activity'].includes(S.view);
+  if(S.view==='recap'){ $('view').className = 'wrap narrow'; $('view').innerHTML = viewRecap(); return; }
   $('view').className = 'wrap ' + (wide ? 'wide' : 'narrow');
   if(r.external){ $('view').className='wrap narrow'; $('view').innerHTML = viewExternal(); return; }
   const v = { home:viewHome, decisions:viewDecisions, objectives:viewObjectives, agents:()=>S.agent?viewAgent():viewAgents(), playbook:viewPlaybook, activity:viewActivity, guardrails:viewGuardrails }[S.view];
@@ -445,39 +476,67 @@ function render(){
 
 /* ================= views ================= */
 function viewExternal(){
-  return `<div class="ap-card sec"><div class="empty"><span class="ap-avatar size-48 square"><span class="ap-avatar-initials"><i class="ap-icon-lock-on"></i></span></span>
-    <h2 class="ap-h2">Clients don't see Mission Control</h2>
-    <p class="ap-body muted">Thomas approves Café Brio posts in the shared approval flow, as today. When he rejects a post, his reason goes back to the agent and can become a rule in the Café Brio playbook.</p>
-    <span class="ap-tag grey mini uc"><span>P4 · P6</span></span></div></div>`;
+  const C = S.client, d = INIT_DECISIONS.find(x=>x.id==='d11'), posts = d.obj.posts;
+  if(!C.sent) return `<div class="ap-card sec"><div class="empty"><span class="ap-avatar size-48 square"><span class="ap-avatar-initials"><i class="ap-icon-lock-on"></i></span></span>
+    <h2 class="ap-h2">Nothing to approve yet</h2>
+    <p class="ap-body muted">Thomas doesn't see Mission Control or the agents. He only sees what the agency sends him to approve.</p></div></div>`;
+  if(C.done) return `<div class="ap-card sec"><div class="empty"><span class="ap-avatar size-48 square"><span class="ap-avatar-initials"><i class="ap-icon-rounded-check"></i></span></span>
+    <h2 class="ap-h2">December calendar approved</h2>
+    <p class="ap-body muted">${C.req ? `11 posts approved. Your note on the gift box post went back to the agency.` : '12 posts approved.'} Sophie Martin is notified.</p></div></div>`;
+  return `<p class="ap-body intro">Café Brio · Sent by Sophie Martin for approval</p>
+  <section class="ap-card sec"><div class="sec-head"><div class="spacer"><h2 class="ap-h3">December calendar</h2><span class="ap-caption muted">12 posts · Instagram and LinkedIn</span></div>${status('orange','Waiting for you')}</div>
+    <div>${posts.map((x,i)=>{ const changed = C.req && i===2;
+      return `<div class="list-row"><div class="client-post spacer"><div class="row">${profAv(d.profile,24)}<span class="ap-caption-bold">${x.day}</span>${tag(x.fmt,'grey')}</div><div class="ap-body">${esc(x.text)}</div>
+        ${changed ? `<span class="ap-caption muted">Your note: "${esc(C.req)}"</span>` : ''}
+        ${C.reqOpen===i ? `<div class="reasons">${['Too much humor','Wrong product','Other'].map((r,k)=>`<label class="ap-radio-container"><input type="radio" name="creq" value="${r}" ${k===0?'checked':''}><span>${r}</span></label>`).join('')}</div>
+          <div class="row">${btn('ghost grey','Cancel','data-creq-cancel')}${btn('stroked grey','Send note','data-creq-send')}</div>` : ''}</div>
+        ${changed ? status('orange','Change requested') : (C.reqOpen===i ? '' : `<a href="#" class="ap-link small standalone" data-creq="${i}">Request a change</a>`)}</div>`; }).join('')}
+      <div class="list-row"><span class="ap-caption muted">+9 more posts</span></div></div>
+    <div class="dec-foot"><div class="acts">${btn('primary blue', C.req ? 'Approve the other 11' : 'Approve all 12','data-capprove','check')}</div></div></section>`;
 }
 
 /* --- home --- */
+const AWAY = [
+  {ag:'inbox-velo', n:118, t:'thank-you replies sent'},
+  {ag:'inbox-lune', n:9, t:'spam comments hidden, with undo'},
+  {ag:'inbox-lune', n:4, t:'complaints assigned to customer care'},
+  {ag:'pub-lune', n:3, t:'scheduled posts paused during a crisis'},
+  {ag:'listen', n:1, t:'trend spotted: #bikecommute +300%'},
+  {ag:'pub-brio', n:12, t:'December posts prepared for Café Brio'} ];
+function needsMe(){ const mine = visibleDecisions().filter(canDecide), j = J(); return j && j.cards.length ? mine.filter(d=>j.cards.includes(d.id)) : mine; }
 function viewHome(){
-  const r = R(), vis = visibleDecisions(), mine = vis.filter(canDecide), scale = r.clients.length/3;
+  const r = R(), vis = visibleDecisions(), mine = needsMe(), scale = r.clients.length/3;
   const crisis = vis.find(d=>d.id==='d1');
-  const top = [...vis].sort(byUrg).slice(0,4);
+  const away = AWAY.filter(x=>sees(agentById(x.ag).client)), alone = away.reduce((n,x)=>n+x.n,0);
   const access = [
     [true, `See agents and activity for ${r.clients.map(c=>CLIENTS[c].name).join(', ')}`],
     [r.modules.length>0, r.modules.length ? `Decide in ${r.modules.map(m=>MODULES[m]).join(', ')}` : 'Approve or reject decisions'],
     [r.configure, 'Create and change agents'], [r.grantAuto, 'Let an agent act alone'],
     [r.validateRules, 'Add rules to the playbook'], [r.pause, 'Pause agents on your clients'], [r.guardrails, 'Change limits, red list and AI budget'] ];
   return `
-  <p class="ap-body intro">Good morning, ${r.name.split(' ')[0]}. Here is what your agents did since yesterday 6 pm.</p>
-  ${crisis ? `<div class="ap-infobox error has-title"><i class="ap-icon-warning"></i><div class="ap-infobox-content"><div class="ap-infobox-texts"><span class="ap-infobox-title">Possible crisis on Maison Lune Facebook</span><span class="ap-infobox-message">A 1-star review was shared 40 times in 2 hours. Scheduled posts are paused for 2 hours.</span></div>${btn('stroked grey','Review','data-go="decisions"')}</div></div>` : ''}
+  <p class="ap-body intro">Good morning, ${r.name.split(' ')[0]}.</p>
+  ${crisis ? `<div class="ap-infobox error has-title"><i class="ap-icon-warning"></i><div class="ap-infobox-content"><div class="ap-infobox-texts"><span class="ap-infobox-title">Possible crisis on Maison Lune Facebook</span><span class="ap-infobox-message">A 1-star review was shared 40 times in 2 hours. The agent paused scheduled posts and drafted a reply.</span></div>${btn('stroked grey','Review','data-go="decisions"')}</div></div>` : ''}
+  <section class="ap-card sec"><div><h2 class="ap-h2">While you were away</h2><p class="ap-body muted">Since yesterday 6 pm</p></div>
+    <div class="away">
+      <div class="away-col"><span class="ap-body muted">Done by agents</span><span class="ap-h1">${alone}</span>
+        <div>${away.map(x=>{ const a = agentById(x.ag); return `<div class="list-row">${agentAv(a,32)}<div class="spacer"><div class="ap-body"><span class="ap-body-bold">${x.n}</span> ${x.t}</div><div class="ap-caption muted">${agentLabel(a)}</div></div></div>`; }).join('')}</div>
+        <a href="#" class="ap-link small standalone" data-go="activity">See everything in Activity</a></div>
+      <div class="away-col"><span class="ap-body muted">Needs you</span><span class="ap-h1">${mine.length}</span>
+        <div>${mine.length ? [...mine].sort(byUrg).slice(0,4).map(d=>{ const a=agentById(d.agent); return `<div class="list-row click" data-go="decisions">${agentAv(a,32)}<div class="spacer"><div class="ap-body-bold">${esc(d.ask)}</div><div class="ap-caption muted">${a.name} · ${CLIENTS[clientOf(d)].name}</div></div>${status(...URG[d.urgency])}</div>`; }).join('') : '<p class="ap-body muted">Nothing waiting. Agents handle the rest.</p>'}</div>
+        ${mine.length && !J() ? `<div>${btn('primary blue',`Start with ${mine.length===1?'it':'these '+mine.length}`,'data-go="decisions"')}</div>` : ''}</div>
+    </div></section>
   <div class="tiles">
-    <div class="tile"><span class="ap-body muted">Handled by agents</span><span class="ap-h1">${Math.round(142*scale)}</span><span class="delta good"><i class="ap-icon-arrow-up"></i>+12% vs last week</span></div>
-    <div class="tile"><span class="ap-body muted">Sent alone</span><span class="ap-h1">${Math.round(118*scale)}</span><span class="delta flat">All in Activity</span></div>
-    <div class="tile"><span class="ap-body muted">Waiting for you</span><span class="ap-h1">${mine.length}</span><span class="delta flat">${vis.length-mine.length ? (vis.length-mine.length)+' more need someone else' : 'decisions'}</span></div>
+    <div class="tile"><span class="ap-body muted">Done alone this week</span><span class="ap-h1">78%</span><span class="delta good"><i class="ap-icon-arrow-up"></i>+6 pts vs last week</span></div>
+    <div class="tile"><span class="ap-body muted">Decisions for you this week</span><span class="ap-h1">${Math.max(1,Math.round(14*scale))}</span><span class="delta good"><i class="ap-icon-arrow-down"></i>5 fewer than last week</span></div>
+    <div class="tile"><span class="ap-body muted">Rules learned this week</span><span class="ap-h1">${3+S.learned.length}</span><span class="delta flat">From your answers and edits</span></div>
     <div class="tile"><span class="ap-body muted">Time saved this week</span><span class="ap-h1">${(6.7*scale).toFixed(1).replace('.0','')} h</span><span class="delta flat">Based on average reply time</span></div>
   </div>
   <div class="home-grid">
-    <section class="ap-card sec"><div class="sec-head"><h2 class="ap-h3">Next decisions</h2><span class="spacer"></span><a href="#" class="ap-link standalone" data-go="decisions">See all</a></div>
-      <div>${top.length ? top.map(d=>{ const a=agentById(d.agent); return `<div class="list-row click" data-go="decisions">${agentAv(a,32)}<div class="spacer"><div class="ap-body-bold">${esc(d.ask)}</div><div class="ap-caption muted">${a.name} · ${CLIENTS[clientOf(d)].name}</div></div>${status(...URG[d.urgency])}</div>`; }).join('') : '<p class="ap-body muted">Nothing waiting. Your agents handle the rest.</p>'}</div></section>
     <section class="ap-card sec"><div class="sec-head"><h2 class="ap-h3">Agents right now</h2><span class="spacer"></span><a href="#" class="ap-link standalone" data-go="agents">Manage</a></div>
       <div>${visibleAgents().map(a=>`<div class="list-row">${agentAv(a,32)}<div class="spacer"><div class="ap-body-bold">${agentLabel(a)}</div><div class="ap-caption muted" ${isPaused(a)?'':`data-live="${a.id}"`}>${isPaused(a)?'Not working':LIVE[a.id][liveTick % LIVE[a.id].length]}</div></div>${agentStatus(a)}</div>`).join('')}</div></section>
-  </div>
-  <section class="ap-card sec access"><div><h2 class="ap-h3">What you can do here</h2><p class="ap-body muted">${r.role}. Agents never get more rights than the people who manage them.</p></div>
-    <ul>${access.map(([ok,t])=>`<li class="${ok?'yes':'no'}"><i class="ap-icon-${ok?'check':'close'}"></i><span class="ap-body${ok?'':' muted'}">${t}</span></li>`).join('')}</ul></section>`;
+    <section class="ap-card sec access"><div><h2 class="ap-h3">What you can do here</h2><p class="ap-body muted">${r.role}. Agents never get more rights than the people who manage them.</p></div>
+      <ul style="grid-template-columns:1fr">${access.map(([ok,t])=>`<li class="${ok?'yes':'no'}"><i class="ap-icon-${ok?'check':'close'}"></i><span class="ap-body${ok?'':' muted'}">${t}</span></li>`).join('')}</ul></section>
+  </div>`;
 }
 const byUrg = (a,b) => 'hml'.indexOf(a.urgency[0]) - 'hml'.indexOf(b.urgency[0]);
 
@@ -486,13 +545,16 @@ function viewDecisions(){
   const vis = visibleDecisions(), readOnly = R().modules.length===0;
   const mods = ['all', ...Object.keys(MODULES).filter(m=>vis.some(d=>modOf(d)===m))];
   if(!mods.includes(S.tab)) S.tab = 'all';
-  const list = vis.filter(d => S.tab==='all' || modOf(d)===S.tab).sort(byUrg);
+  let list = vis.filter(d => S.tab==='all' || modOf(d)===S.tab).sort(byUrg), others = [];
+  const j = J();
+  if(j && j.cards.length){ others = list.filter(d=>!j.cards.includes(d.id)); list = list.filter(d=>j.cards.includes(d.id)).sort((a,b)=>j.cards.indexOf(a.id)-j.cards.indexOf(b.id)); }
   S.curList = list.map(d=>d.id); if(!(S.focus < list.length)) S.focus = 0;
+  const rest = others.length ? (S.showOthers ? `<h2 class="ap-h3">Other decisions</h2>${others.map(decCard).join('')}` : `<div><a href="#" class="ap-link small standalone" data-show-others>Show ${others.length} other decision${others.length===1?'':'s'}, not part of this journey</a></div>`) : '';
   return `
   ${readOnly ? infobox('info','info','You have read-only access. You can follow decisions, not approve them.') : ''}
-  <div class="ap-tabs"><div class="ap-tabs-nav" role="tablist">${mods.map(m=>{ const n = vis.filter(d=>m==='all'||modOf(d)===m).length;
+  <div class="ap-tabs"><div class="ap-tabs-nav" role="tablist">${mods.map(m=>{ const jc = J()?.cards, n = vis.filter(d=>(m==='all'||modOf(d)===m) && (!jc?.length || S.showOthers || jc.includes(d.id))).length;
     return `<button type="button" class="ap-tabs-tab${m===S.tab?' active':''}" role="tab" data-tab="${m}">${m==='all'?'All':MODULES[m]}<span class="ap-counter normal ${m===S.tab?'blue':'grey'}">${n}</span></button>`; }).join('')}</div></div>
-  ${list.length ? list.map(decCard).join('') : `<div class="ap-card sec"><div class="empty"><h2 class="ap-h2">All caught up</h2><p class="ap-body muted">Agents will bring new decisions here. Everything they did alone is in Activity.</p>${btn('primary blue','See activity','data-go="activity"')}</div></div>`}`;
+  ${list.length ? list.map(decCard).join('') : `<div class="ap-card sec"><div class="empty"><h2 class="ap-h2">All caught up</h2><p class="ap-body muted">Agents will bring new decisions here. Everything they did alone is in Activity.</p>${btn('primary blue','See activity','data-go="activity"')}</div></div>`}${rest}`;
 }
 
 function objectBlock(d){
@@ -577,19 +639,22 @@ function decCard(d){
   } else {
     foot = `<span class="blocked ap-caption muted"><i class="ap-icon-lock-on"></i>${R().modules.length ? 'You don\'t have '+MODULES[modOf(d)]+' rights here.' : 'Read-only access.'} Someone with access will decide.</span>`;
   }
-  const focused = R().modules.length && S.curList[S.focus]===d.id;
+  const focused = J() ? curStep()?.card===d.id : (R().modules.length && S.curList[S.focus]===d.id);
   return `<article class="ap-card dec${focused?' focused':''}" id="card-${d.id}">
     <div class="dec-head">${agentAv(a,24)}<span class="ap-body-bold">${a.name}</span><span class="ap-caption muted">· ${CLIENTS[clientOf(d)].name} · ${d.time}</span><span class="spacer"></span><span class="ap-tag grey mini uc"><span>${d.uc}</span></span>${status(...URG[d.urgency])}</div>
     <h3 class="ap-h3">${esc(d.ask)}</h3>
     ${objectBlock(d)}
     ${d.side ? `<div class="tags">${tag(d.side,'grey','pause')}</div>` : ''}
+    ${d.learn ? `<div class="learn ap-caption"><i class="ap-icon-sparkles"></i><span>${esc(d.learn)}</span></div>` : ''}
     ${S.openWhy[d.id] ? `<div class="why"><span class="ap-caption-bold">Why this proposal</span><span class="ap-body">${esc(d.why)}</span>${d.conf?`<span class="ap-caption muted">Confidence ${d.conf}% · Agent owner ${a.owner}</span>`:`<span class="ap-caption muted">Agent owner ${a.owner}</span>`}</div>` : ''}
     <div class="dec-foot"><button type="button" class="ap-button ghost blue" data-why="${d.id}"><span>${S.openWhy[d.id]?'Hide reason':'Why?'}</span></button>${foot}</div>
   </article>`;
 }
 
-function resolve(id, logText, undoable){
+function resolve(id, logText, undoable, learned=true){
   const d = S.decisions.find(x=>x.id===id); if(!d) return;
+  S.made++; if(learned && d.learn) S.learned.push(LEARNED[d.id] || d.learn);
+  if(d.id==='d11') S.client.sent = true;
   const idx = S.decisions.indexOf(d), a = agentById(d.agent);
   $('card-'+id)?.classList.add('leaving');
   setTimeout(()=>{
@@ -721,7 +786,7 @@ function answer(id){
   const d = S.decisions.find(x=>x.id===id), i = S.qChoice[id]; if(!d || i===undefined) return;
   const text = d.question.opts[i].t, sim = $('sim-'+id)?.checked;
   if(sim) (PLAYBOOK[clientOf(d)].pending ||= []).push({ r:`When ${d.question.topic}: ${text}.`, from:'From your answer to the agent, by '+R().name });
-  resolve(id, `Answered the agent: "${text}"${sim ? ' · saved for similar cases' : ''}`, false);
+  resolve(id, `Answered the agent: "${text}"${sim ? ' · saved for similar cases' : ''}`, false, !!sim);
 }
 /* live agent status */
 const LIVE = {
@@ -772,8 +837,8 @@ function objAction(a){
   if(a==='new'){ O.phase='new'; render(); $('objText')?.focus(); }
   if(a==='cancel' || a==='back'){ O.phase='list'; render(); }
   if(a==='plan'){ O.text = ($('objText')?.value || OBJ_TEXT).trim(); O.phase='planning'; O.note=null; O.o={n:9, nets:'Instagram', start:'Today'}; render(); startPlanning(); }
-  if(a==='launch'){ O.phase='run'; O.launched=true; O.steps.forEach(s=>s.st = s.on ? 'todo' : 'skipped'); addLog({who:R().name, act:'Launched objective: '+O.text, profile:'lune-ig', res:['green','Done'], why:'Plan approved in Objectives.'}); render(); runFrom(0); }
-  if(a==='review'){ O.steps[2].st='done'; snack(`${O.o.n} drafts approved`); addLog({who:R().name, act:`Approved ${O.o.n} campaign drafts`, profile:'lune-ig', res:['green','Done'], why:'Objective checkpoint.'}); runFrom(3); }
+  if(a==='launch'){ S.made++; O.phase='run'; O.launched=true; O.steps.forEach(s=>s.st = s.on ? 'todo' : 'skipped'); addLog({who:R().name, act:'Launched objective: '+O.text, profile:'lune-ig', res:['green','Done'], why:'Plan approved in Objectives.'}); render(); runFrom(0); }
+  if(a==='review'){ O.steps[2].st='done'; S.made++; S.learned.push('Agents run the rest of the VivaTech plan alone until June 20, then report what to repeat next year.'); snack(`${O.o.n} drafts approved`); addLog({who:R().name, act:`Approved ${O.o.n} campaign drafts`, profile:'lune-ig', res:['green','Done'], why:'Objective checkpoint.'}); runFrom(3); }
   if(a==='open'){ O.phase='run'; render(); }
 }
 const stepStatus = s => ({ done:status('green','Done'), running:status('blue','In progress'), waiting:status('orange','Waiting for you'), scheduled:status('grey','Scheduled'), skipped:status('grey','Skipped',false), todo:status('grey','Next',false) }[s.st] || '');
@@ -899,6 +964,99 @@ $('slackDialog').addEventListener('click', e=>{
   if(a==='ok' && S.decisions.includes(d)){ S.slackDone = `${d.approveLog} by ${R().name} from Slack. Logged in Mission Control.`; resolve(d.id, d.approveLog+' (from Slack)', false); renderSlack(); }
 });
 
+/* ================= journeys ================= */
+const LEARNED = {
+  d1:'When a review spreads, the agent pauses posts and drafts a holding reply before anyone arrives.',
+  d2:'Complaints from repeat customers go straight to support.',
+  d5:'Calendar gaps are filled the same way. You only see the plan.',
+  d6:'Promotions are paused on sensitive news days without asking.',
+  d7:'Strong trends become drafts directly.',
+  d8:'Reels come first for Café Brio.',
+  d9:'Thank-you replies on Maison Lune are sent alone. About 50 fewer decisions a month.',
+  d10:'Every Maison Lune draft starts with "Hello 👋".',
+  d11:'The Café Brio calendar goes to the client on the 20th without asking.',
+  d12:'Refunds over 200 € get the same answer, without asking you.',
+  d13:'Questions about the Ova lamp and dimmers are answered alone.' };
+const gone = id => !S.decisions.some(d=>d.id===id);
+const JOURNEYS = {
+  lea:{ who:'lea', persona:'Léa, community manager', title:'Start the day with the work already done', shows:'Agents worked overnight. Léa only decides the 3 cases they could not handle.', cards:['d1','d12','d13'],
+    end:'Agents handled the routine. You decided the 3 cases that needed a person, and taught them how to handle 2 of them next time.',
+    steps:[
+      {go:'home', t:'See what agents did while you were away', b:'The routine is done. Only 3 decisions are left for you.', next:'Go to the 3 decisions', nextGo:'decisions'},
+      {go:'decisions', card:'d1', t:'Handle the crisis', b:'A bad review is spreading. The agent already paused posts and wrote a holding reply. Check it, change it if needed, and send it.', done:()=>gone('d1')},
+      {go:'decisions', card:'d12', t:'Answer the agent\'s question', b:'This refund is above the agent\'s limit. Pick an answer and keep "Do the same" ticked so it doesn\'t ask again.', done:()=>gone('d12')},
+      {go:'decisions', card:'d13', t:'Teach it a product fact', b:'The agent won\'t guess on product facts. Your answer is saved for the next person who asks.', done:()=>gone('d13')} ]},
+  karim:{ who:'karim', persona:'Karim, workspace admin', title:'Let an agent do more on its own', shows:'The agent proves it is reliable. Karim gives it more autonomy, then checks what it did.', cards:['d9','d10'],
+    end:'Thank-you replies no longer reach you, every draft follows the new rule, and you can still check or undo anything an agent did.',
+    steps:[
+      {go:'home', t:'Look at the trend', b:'Each week, agents do more alone and you decide less. Today the Inbox agent asks for more.', next:'See the request', nextGo:'decisions'},
+      {go:'decisions', card:'d9', t:'Let it send thank-you replies alone', b:'50 replies approved without edits in 14 days. Allow it, and these stop coming to you.', done:()=>gone('d9')},
+      {go:'decisions', card:'d10', t:'Turn a repeated edit into a rule', b:'You fixed the same greeting on 3 drafts. Add it to the playbook so every agent uses it.', done:()=>gone('d10')},
+      {go:'agents', agent:'inbox-lune', t:'Check the new setting', b:'"Thank-you replies" is now on Act alone. You can move it back here at any time.', next:'See what it did'},
+      {go:'activity', act:'agents', t:'Check what agents did alone', b:'Everything an agent does alone is logged with its reason. Undo one action to see how it works.', done:()=>S.log.some(l=>l.res[1]==='Cancelled')} ]},
+  sophie:{ who:'sophie', persona:'Sophie, agency lead', title:'Hand over a goal, not a task', shows:'Sophie gives a goal. Agents plan it, run it, and stop only where she has to decide.', cards:[],
+    end:'You set a goal and approved one plan and one batch of drafts. Agents run the rest until June 20.',
+    steps:[
+      {go:'objectives', t:'Give agents a goal', b:'Click New objective, or press ⌘K and type "Launch the VivaTech campaign".', done:()=>['plan','run'].includes(S.obj.phase)},
+      {go:'objectives', t:'Adjust the plan, then launch it', b:'Untick a step or ask for a change, like "Add LinkedIn". Nothing starts before you launch.', done:()=>S.obj.phase==='run'},
+      {go:'objectives', t:'Review at the checkpoint', b:'Agents work until they need you. Approve the drafts so they can continue.', done:()=>S.obj.steps[2]?.st==='done'} ]},
+  thomas:{ who:'sophie', persona:'Thomas, client approver', title:'Approve without opening Agorapulse', shows:'The agent prepares the month, the agency sends it, the client approves it in one place.', cards:['d11'],
+    end:'The agent prepared the month, Sophie sent it in one click, and Thomas approved it without seeing any agent. His note teaches the agent what this client dislikes.',
+    steps:[
+      {go:'decisions', card:'d11', t:'Send the December calendar', b:'You are Sophie. The agent prepared 12 posts for Café Brio. Send them to the client.', done:()=>gone('d11')},
+      {who:'thomas', t:'Approve as Thomas', b:'You are now Thomas, the client. Request a change on the humorous post, then approve the rest.', done:()=>S.client.done} ]},
+};
+const J = () => S.j && JOURNEYS[S.j];
+const curStep = () => J() && J().steps[S.jStep];
+function enterStep(){
+  const st = curStep(); if(!st) return;
+  if(st.who) S.who = st.who;
+  if(st.go){ S.view = st.go; S.agent = st.agent || null; }
+  if(st.act) S.actFilter = st.act;
+}
+function jCheck(){
+  let guard = 0;
+  while(J() && S.view!=='recap' && curStep() && curStep().done && curStep().done() && guard++ < 10){
+    S.jStep++;
+    if(!curStep()){ S.view = 'recap'; S.agent = null; return; }
+    enterStep();
+  }
+}
+function startJourney(k){
+  S.j = k; S.jStep = 0; S.jStart = Date.now(); S.made = 0; S.learned = []; S.showOthers = false;
+  S.who = JOURNEYS[k].who; S.pb = R().clients[0] || 'lune'; enterStep();
+  if($('journeyDialog').open) $('journeyDialog').close();
+  render(); $('scroll').scrollTop = 0;
+}
+function renderGuide(){
+  const j = J(), g = $('guide');
+  if(!j || S.view==='recap'){ g.hidden = true; return; }
+  const st = curStep(), n = j.steps.length;
+  g.hidden = false;
+  g.innerHTML = `<div class="guide-text"><div class="row"><span class="ap-caption muted">${j.persona} · Step ${S.jStep+1} of ${n}</span><span class="guide-steps">${j.steps.map((_,i)=>`<span class="${i<=S.jStep?'on':''}"></span>`).join('')}</span></div>
+    <span class="ap-body-bold">${esc(st.t)}</span><span class="ap-body">${esc(st.b)}</span></div>
+    ${btn('ghost grey','Exit journey','data-jexit')}
+    ${st.next ? btn('primary blue', st.next, 'data-jnext') : ''}`;
+}
+function viewRecap(){
+  const j = J(), mins = Math.max(1, Math.round((Date.now()-S.jStart)/60000));
+  return `<section class="ap-card sec"><div class="empty" style="padding-bottom:0"><span class="ap-avatar size-48 square"><span class="ap-avatar-initials"><i class="ap-icon-rounded-check"></i></span></span>
+      <span class="ap-caption muted">${j.persona}</span><h2 class="ap-h1">Done in ${mins} min</h2><p class="ap-body muted">${j.end}</p></div>
+    <div class="tiles two inset"><div class="tile"><span class="ap-body muted">Decisions you made</span><span class="ap-h2">${S.made}</span></div>
+      <div class="tile"><span class="ap-body muted">Things agents learned</span><span class="ap-h2">${S.learned.length}</span></div></div>
+    ${S.learned.length ? `<div class="stack"><h3 class="ap-h3">What changes next time</h3><ul class="recap-list">${S.learned.map(l=>`<li><i class="ap-icon-check"></i><span class="ap-body">${esc(l)}</span></li>`).join('')}</ul></div>` : ''}
+    <div class="dec-foot"><div class="acts">${btn('ghost grey','Explore freely','data-jexit')}${btn('primary blue','Try another journey','data-jpick')}</div></div></section>`;
+}
+function openJourneys(){
+  $('journeyBody').innerHTML = `<div class="journeys">${Object.entries(JOURNEYS).map(([k,j])=>{ const p = k==='thomas' ? ROLES.thomas : ROLES[j.who];
+    return `<button type="button" class="journey" data-journey="${k}">${personAv(p.name,40)}<span class="stack spacer"><span class="ap-caption muted">${j.persona} · ${j.steps.length} steps</span><span class="ap-body-bold">${j.title}</span><span class="ap-body muted">${j.shows}</span></span><i class="ap-icon-chevron-right"></i></button>`; }).join('')}</div>`;
+  if(!$('journeyDialog').open) $('journeyDialog').showModal();
+}
+$('journeyDialog').addEventListener('click', e=>{
+  if(e.target===$('journeyDialog') || e.target.closest('[data-jclose]')){ $('journeyDialog').close(); return; }
+  const b = e.target.closest('[data-journey]'); if(b){ const k = b.dataset.journey; if(S.j || S.made) location.search = '?journey='+k; else startJourney(k); }
+});
+
 /* ================= events ================= */
 document.addEventListener('click', e => {
   const t = e.target.closest('button, a, [data-go], [data-agent], [data-obj], [data-view], [data-who]');
@@ -907,6 +1065,14 @@ document.addEventListener('click', e => {
   const ds = t.dataset;
   if(t.id==='whoBtn'){ const m=$('whoMenu'); m.hidden=!m.hidden; t.setAttribute('aria-expanded', !m.hidden); return; }
   if(!$('whoMenu').contains(t)) $('whoMenu').hidden = true;
+  if(ds.jnext!==undefined){ const st = curStep(); S.jStep++; if(!curStep()) S.view='recap'; else { if(st.nextGo) S.view = st.nextGo; enterStep(); } render(); $('scroll').scrollTop=0; return; }
+  if(ds.jexit!==undefined){ S.j = null; if(S.view==='recap') S.view='home'; render(); return; }
+  if(ds.jpick!==undefined || t.id==='jPickBtn'){ $('whoMenu').hidden = true; openJourneys(); return; }
+  if(ds.showOthers!==undefined){ S.showOthers = true; render(); return; }
+  if(ds.creq!==undefined){ S.client.reqOpen = +ds.creq; render(); return; }
+  if(ds.creqCancel!==undefined){ S.client.reqOpen = false; render(); return; }
+  if(ds.creqSend!==undefined){ S.client.req = document.querySelector('input[name="creq"]:checked')?.value || 'Other'; S.client.reqOpen = false; S.learned.push('No more humorous posts for Café Brio. Thomas\'s note became a playbook rule.'); render(); snack('Note sent to the agency'); return; }
+  if(ds.capprove!==undefined){ S.client.done = true; S.made++; render(); snack('Calendar approved'); return; }
   if(ds.who){ S.who = ds.who; S.agent=null; S.tab='all'; S.focus=0; S.pb = R().clients[0] || 'lune'; $('whoMenu').hidden=true; render(); snack('Now viewing as '+R().name); return; }
   if(t.id==='resetBtn'){ location.reload(); return; }
   if(ds.out!==undefined){ snack('Not part of this prototype'); return; }
@@ -927,12 +1093,12 @@ document.addEventListener('click', e => {
   if(ds.reject){ S.rejecting[ds.reject] = true; render(); return; }
   if(ds.cancelReject){ delete S.rejecting[ds.cancelReject]; render(); return; }
   if(ds.rejectGo){ const d = S.decisions.find(x=>x.id===ds.rejectGo), r = document.querySelector(`input[name="rej-${d.id}"]:checked`)?.value || 'Other';
-    resolve(d.id, `Rejected: "${r}" · ${d.ask}`, false); setTimeout(()=>{ S.log[0].res=['grey','Rejected']; render(); }, 260); return; }
+    resolve(d.id, `Rejected: "${r}" · ${d.ask}`, false, false); setTimeout(()=>{ S.log[0].res=['grey','Rejected']; render(); }, 260); return; }
   if(ds.edit){ S.editing[ds.edit] = true; render(); $('ed-'+ds.edit)?.focus(); return; }
   if(ds.cancelEdit){ delete S.editing[ds.cancelEdit]; render(); return; }
   if(ds.approve){ const d = S.decisions.find(x=>x.id===ds.approve); if(ds.edited){ d.draft = $('ed-'+d.id)?.value || d.draft; }
     resolve(d.id, (ds.edited ? 'Edited · ' : '') + d.approveLog, d.undo); return; }
-  if(ds.secondary){ const d = S.decisions.find(x=>x.id===ds.secondary); resolve(d.id, d.secondary+' · '+d.ask, false); return; }
+  if(ds.secondary){ const d = S.decisions.find(x=>x.id===ds.secondary); resolve(d.id, d.secondary+' · '+d.ask, false, false); return; }
   if(ds.fallback){ const d = S.decisions.find(x=>x.id===ds.fallback); snack('Sent to Karim Benali for approval'); addLog({who:R().name, act:d.fallback+': '+d.ask, profile:d.profile, res:['orange','Waiting for an admin'], why:d.why}); return; }
   if(ds.agent){ S.agent = ds.agent; S.sim=null; render(); $('scroll').scrollTop=0; return; }
   if(ds.sim){ S.sim='loading'; render(); setTimeout(()=>{ S.sim=ds.sim; render(); }, 1200); return; }
@@ -977,7 +1143,8 @@ document.addEventListener('keydown', e=>{
   if(k==='e' && d.draft){ e.preventDefault(); S.editing[d.id] = true; render(); $('ed-'+d.id)?.focus(); }
 });
 
-render();
+const jParam = new URLSearchParams(location.search).get('journey');
+if(jParam && JOURNEYS[jParam]) startJourney(jParam); else { S.view = 'home'; render(); openJourneys(); }
 </script>
 </body>
 </html>
