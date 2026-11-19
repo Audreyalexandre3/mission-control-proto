@@ -160,6 +160,17 @@
   .recap-list i { color:var(--ref-color-green-150); margin-top:2px; }
   .client-post { display:flex; flex-direction:column; gap:var(--ref-spacing-xxs); }
 
+  /* brands */
+  .brand-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:var(--ref-spacing-sm); }
+  .brand-card { display:flex; flex-direction:column; gap:var(--ref-spacing-xs); padding:var(--ref-spacing-sm); cursor:pointer; border-color:var(--ref-color-grey-20); text-align:left; font:inherit; color:inherit; background:var(--ref-color-white); }
+  .brand-card:hover { border-color:var(--ref-color-electric-blue-100); }
+  .item { display:grid; grid-template-columns:160px 1fr auto; gap:var(--ref-spacing-xs); align-items:start; padding:var(--ref-spacing-xs) 0; border-top:1px solid var(--ref-color-grey-20); }
+  .item:first-child { border-top:0; }
+  .item-acts { display:flex; gap:var(--ref-spacing-sm); align-items:center; justify-content:flex-end; }
+  .used { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+  .src { display:inline-flex; align-items:center; gap:4px; }
+  .src i { font-size:12px; }
+
   /* O1 modals */
   .modal { padding:0; border:0; max-height:calc(100vh - 2 * var(--ref-spacing-xl)); }
   .modal:not([open]) { display:none; }
@@ -248,11 +259,12 @@
 
 <script>
 /* ================= data ================= */
-const CLIENTS = { lune:{name:'Maison Lune'}, velo:{name:'Vélo Nord'}, brio:{name:'Café Brio'} };
+const CLIENTS = { lune:{name:'Maison Lune'}, velo:{name:'Vélo Nord'}, brio:{name:'Café Brio'}, sora:{name:'Atelier Sora'} };
 const PROFILES = {
   'lune-ig':{client:'lune', net:'instagram', handle:'@maisonlune'}, 'lune-fb':{client:'lune', net:'facebook', handle:'Maison Lune'}, 'lune-li':{client:'lune', net:'linkedin', handle:'Maison Lune'},
   'velo-ig':{client:'velo', net:'instagram', handle:'@velonord'}, 'velo-fb':{client:'velo', net:'facebook', handle:'Vélo Nord'},
   'brio-ig':{client:'brio', net:'instagram', handle:'@cafebrio'}, 'brio-li':{client:'brio', net:'linkedin', handle:'Café Brio'},
+  'sora-ig':{client:'sora', net:'instagram', handle:'@ateliersora'}, 'sora-li':{client:'sora', net:'linkedin', handle:'Atelier Sora'},
 };
 const MODULES = { inbox:'Inbox', publishing:'Publishing', listening:'Listening', reports:'Reports' };
 const MOD_ICON = { inbox:'feature-inbox', publishing:'feature-publishing', listening:'feature-listening', reports:'feature-analytics' };
@@ -366,6 +378,7 @@ const PLAYBOOK = {
   lune:{ name:'Maison Lune', tone:['Use "vous" on Facebook and LinkedIn, "tu" on Instagram','One emoji max per reply'], dont:['Never mention competitors'], saved:['Shipping abroad','Returns and refunds','Showroom opening hours'],
     pending:[ {r:'Always add the product link when someone asks for a price.', from:'Suggested by Léa Petit'} ] },
   velo:{ name:'Vélo Nord', tone:['Friendly, sporty','Use "tu" everywhere'], dont:['No medical advice'], saved:['Warranty','Delivery times'], pending:[ {r:'Never answer questions about e-bike batteries, assign to support.', from:'Learned from 5 escalations'} ] },
+  sora:{ name:'Atelier Sora', tone:[], dont:[], saved:[], pending:[] },
   brio:{ name:'Café Brio', tone:['Cozy, local','Mention the neighborhood when possible'], dont:['No humor about coffee prices'], saved:['Opening hours'], pending:[ {r:'This client refuses humorous posts.', from:'Learned from 3 client rejections'} ] },
 };
 
@@ -373,7 +386,7 @@ const PLAYBOOK = {
 const S = { who:'sophie', view:'decisions', tab:'all', decisions:INIT_DECISIONS.map(d=>({...d})), log:INIT_LOG.map(l=>({...l})),
   openWhy:{}, editing:{}, rejecting:{}, steer:{}, qChoice:{}, focus:0, curList:[], agent:null, pb:'lune', actFilter:'all', openLog:null,
   paused:{all:false, lune:false, velo:false, brio:false}, sim:null, levels:{},
-  j:null, jStep:0, jStart:0, made:0, learned:[], showOthers:false, client:{sent:false, req:null, reqOpen:false, done:false} };
+  brand:null, j:null, jStep:0, jStart:0, made:0, learned:[], showOthers:false, client:{sent:false, req:null, reqOpen:false, done:false} };
 AGENTS.forEach(a=>a.actions.forEach((x,i)=>S.levels[a.id+':'+i]=x.l));
 
 /* ================= helpers ================= */
@@ -416,7 +429,7 @@ const addLog = e => S.log.unshift({t:now(), ...e});
 /* ================= shell ================= */
 const SECTIONS = [
   {k:'home', label:'Home', icon:'sparkles'}, {k:'decisions', label:'Decisions', icon:'rounded-check'}, {k:'objectives', label:'Objectives', icon:'target'},
-  {k:'agents', label:'Agents', icon:'multiple-users'}, {k:'playbook', label:'Playbook', icon:'bookmark'}, {k:'activity', label:'Activity', icon:'history'}, {k:'guardrails', label:'Guardrails', icon:'lock-on'} ];
+  {k:'agents', label:'Agents', icon:'multiple-users'}, {k:'brands', label:'Brands', icon:'flag'}, {k:'activity', label:'Activity', icon:'history'}, {k:'guardrails', label:'Guardrails', icon:'lock-on'} ];
 
 function renderShell(){
   const r = R(), m = r.modules, all = m.length===4;
@@ -466,11 +479,11 @@ function renderHeader(){
 
 function render(){
   jCheck(); renderShell(); renderHeader(); renderGuide();
-  const r = R(), wide = ['home','agents','activity'].includes(S.view);
+  const r = R(), wide = ['home','agents','activity'].includes(S.view) || (S.view==='brands' && !S.brand);
   if(S.view==='recap'){ $('view').className = 'wrap narrow'; $('view').innerHTML = viewRecap(); return; }
   $('view').className = 'wrap ' + (wide ? 'wide' : 'narrow');
   if(r.external){ $('view').className='wrap narrow'; $('view').innerHTML = viewExternal(); return; }
-  const v = { home:viewHome, decisions:viewDecisions, objectives:viewObjectives, agents:()=>S.agent?viewAgent():viewAgents(), playbook:viewPlaybook, activity:viewActivity, guardrails:viewGuardrails }[S.view];
+  const v = { home:viewHome, decisions:viewDecisions, objectives:viewObjectives, agents:()=>S.agent?viewAgent():viewAgents(), brands:viewBrands, activity:viewActivity, guardrails:viewGuardrails }[S.view];
   $('view').innerHTML = v();
 }
 
@@ -688,7 +701,7 @@ function viewAgent(){
       <span class="ap-body muted">When it acts</span><div class="tags">${a.triggers.map(t=>tag(t,'grey')).join('')}</div>
       <span class="ap-body muted">Escalates to</span><span class="ap-body">${a.escalate}</span>
       <span class="ap-body muted">Limits</span><span class="ap-body">${a.limits}</span>
-      <span class="ap-body muted">Playbook</span><span class="ap-body">Organization + ${CLIENTS[a.client].name}</span></div></section>
+      <span class="ap-body muted">Brand</span><a href="#" class="ap-link standalone" data-brand="${a.client}">${CLIENTS[a.client].name}</a></div></section>
   <section class="ap-card sec"><div><h2 class="ap-h3">Autonomy</h2><p class="ap-body muted">How far the agent can go, for each type of action.</p></div>
     <div class="table-box"><table class="ap-table auto-table"><thead><tr><th class="ap-caption-bold">Action</th>${LEVELS.map(l=>`<th class="ap-caption-bold c"><span class="tip">${l.label}<span class="ap-tooltip top-right">${l.hint}</span></span></th>`).join('')}</tr></thead><tbody>
     ${a.actions.map((x,i)=>{ const key=a.id+':'+i, cur=S.levels[key];
@@ -699,19 +712,130 @@ function viewAgent(){
     ${canEdit && !r.grantAuto ? `<p class="ap-caption muted">Only organization and workspace admins can let an agent act alone.</p>` : ''}</section>`;
 }
 
-/* --- playbook --- */
-function viewPlaybook(){
-  const r = R(), keys = ['org', ...r.clients];
-  if(!keys.includes(S.pb)) S.pb = keys[1] || 'org';
-  const pb = PLAYBOOK[S.pb];
-  return `<p class="ap-body intro">Shared memory for all agents. Client rules override organization rules.</p>
-  <div class="ap-tabs"><div class="ap-tabs-nav" role="tablist">${keys.map(k=>`<button type="button" class="ap-tabs-tab${k===S.pb?' active':''}" role="tab" data-pb="${k}">${PLAYBOOK[k].name}${PLAYBOOK[k].pending?.length?`<span class="ap-counter normal ${k===S.pb?'blue':'grey'}">${PLAYBOOK[k].pending.length}</span>`:''}</button>`).join('')}</div></div>
-  ${pb.pending?.length ? `<section class="ap-card sec"><div><h2 class="ap-h3">Suggested rules</h2><p class="ap-body muted">Learned from your edits, answers and rejections. Never added without a person.</p></div>
-    <div>${pb.pending.map((p,i)=>`<div class="rule"><i class="ap-icon-sparkles"></i><div class="spacer"><div class="ap-body">${esc(p.r)}</div><div class="ap-caption muted">${esc(p.from)}</div></div>
-      ${r.validateRules ? btn('ghost grey','Dismiss',`data-rule-no="${i}"`) + btn('stroked blue','Add rule',`data-rule-yes="${i}"`) : status('orange','Waiting for an admin')}</div>`).join('')}</div></section>` : ''}
-  <section class="ap-card sec"><h2 class="ap-h3">Tone of voice</h2><div>${pb.tone.map(t=>`<div class="rule"><i class="ap-icon-check"></i><span class="ap-body spacer">${esc(t)}</span></div>`).join('')}</div></section>
-  <section class="ap-card sec"><h2 class="ap-h3">Never do</h2><div>${pb.dont.map(t=>`<div class="rule"><i class="ap-icon-close"></i><span class="ap-body spacer">${esc(t)}</span></div>`).join('')}</div></section>
-  ${pb.saved ? `<section class="ap-card sec"><h2 class="ap-h3">Saved replies agents can use</h2><div class="tags">${pb.saved.map(t=>tag(t,'grey','bookmark')).join('')}</div></section>` : ''}`;
+/* --- brands: one shared context per brand, used by every agent --- */
+const SRC = { declared:['user','Declared by you'], inferred:['sparkles','Inferred by AI'], observed:['eye-on','Observed in your data'], connected:['link','Connected source'] };
+const USE = {
+  'Inbox agent':['feature-inbox','Tone and wording of replies, what to escalate'],
+  'Publishing agent':['feature-publishing','Post ideas, captions and calendar gaps'],
+  'Listening':['feature-listening','Searches for the brand and its competitors, no setup'],
+  'Reports':['feature-analytics','Goals to track and competitors to benchmark'],
+  'Archie':['feature-archie','Content strategy and drafts'],
+  'All agents':['sparkles','Facts agents can quote without guessing'] };
+const BSEC = [
+  {k:'identity', t:'Identity', d:'Who the brand is and who it talks to.', used:['Archie','Publishing agent','Reports']},
+  {k:'goals', t:'Goals', d:'What you want to achieve. Only you can say it, so agents never guess it.', used:['Reports','Publishing agent','Archie']},
+  {k:'voice', t:'Voice', d:'How the brand speaks. Rules you add from decisions land here.', used:['Inbox agent','Publishing agent','Archie']},
+  {k:'competitors', t:'Competitors', d:'Set once, used everywhere. No add-on to activate per feature.', used:['Listening','Reports','Archie']},
+  {k:'rules', t:'Response rules', d:'What agents answer, and who takes over.', used:['Inbox agent']},
+  {k:'sources', t:'Sources', d:'Where agents read facts.', used:['All agents']} ];
+const BRANDS = {
+  lune:{ site:'maisonlune.fr', kind:'Client', owner:'Karim Benali', profiles:['lune-ig','lune-fb','lune-li'],
+    identity:[ {k:'What it sells', v:'Handmade lamps and home lighting, made in Lyon', src:'inferred', ok:true, from:'Read on maisonlune.fr'},
+      {k:'Audience', v:'Design lovers, 28 to 45, France and Belgium', src:'observed', ok:true, from:'From Instagram followers'},
+      {k:'Industry', v:'Home decor', src:'declared', ok:true} ],
+    goals:[ {k:'Instagram engagement', v:'4% by March. Now 3.1%', src:'declared', ok:true}, {k:'Reply time', v:'Under 2 h on weekdays. Now 1 h 40', src:'declared', ok:true} ],
+    competitors:[ {k:'Lumen & Co', v:'@lumenco · 48k followers', src:'declared', ok:true}, {k:'Atelier Nuit', v:'@ateliernuit · 12k followers', src:'inferred', ok:false, from:'Mentioned with you 23 times this month'} ],
+    rules:[ {k:'Press', v:'Always to Karim Benali', src:'declared', ok:true}, {k:'Complaints', v:'Customer care team', src:'declared', ok:true}, {k:'Best time to reply', v:'Your audience is most active 6 to 9 pm', src:'observed', ok:true} ],
+    sources:[ {k:'Website', v:'maisonlune.fr · read 2 days ago', src:'connected', ok:true}, {k:'Brand book', v:'Notion · Brand book 2026', src:'connected', ok:true}, {k:'Product catalog', v:'Shopify · 84 products', src:'connected', ok:true} ] },
+  velo:{ site:'velonord.com', kind:'Client', owner:'Sophie Martin', profiles:['velo-ig','velo-fb'],
+    identity:[ {k:'What it sells', v:'City and gravel bikes, sold online and in 2 shops in Lille', src:'inferred', ok:true, from:'Read on velonord.com'}, {k:'Audience', v:'Commuters, 25 to 40, northern France', src:'observed', ok:true, from:'From Instagram followers'} ],
+    goals:[ {k:'Online sales from social', v:'+15% this quarter', src:'declared', ok:true} ],
+    competitors:[ {k:'Rouleur', v:'@rouleur.fr · 31k followers', src:'declared', ok:true} ],
+    rules:[ {k:'Complaints', v:'Vélo Nord support team', src:'declared', ok:true} ],
+    sources:[ {k:'Website', v:'velonord.com · read yesterday', src:'connected', ok:true} ] },
+  brio:{ site:'cafebrio.fr', kind:'Client', owner:'Sophie Martin', profiles:['brio-ig','brio-li'],
+    identity:[ {k:'What it sells', v:'Specialty coffee shop and roaster in Nantes', src:'inferred', ok:true, from:'Read on cafebrio.fr'} ],
+    goals:[ {k:'Instagram followers', v:'5,000 by June. Now 3,840', src:'declared', ok:true} ],
+    competitors:[], rules:[ {k:'Approval', v:'Every post goes to Thomas Girard', src:'declared', ok:true} ],
+    sources:[ {k:'Website', v:'cafebrio.fr · read 5 days ago', src:'connected', ok:true} ] },
+  sora:{ site:'ateliersora.com', kind:'New client', owner:'Sophie Martin', profiles:['sora-ig','sora-li'], isNew:true,
+    identity:[ {k:'What it sells', v:'Ceramic tableware, handmade in small batches', src:'inferred', ok:false, from:'Read on ateliersora.com'},
+      {k:'Audience', v:'Restaurants and home cooks, 30 to 55', src:'inferred', ok:false, from:'From 1,200 Instagram followers'},
+      {k:'Industry', v:'Home and kitchen', src:'inferred', ok:false, from:'Read on ateliersora.com'} ],
+    goals:[],
+    voice:[ {k:'Tone', v:'Calm, precise, a little poetic', src:'inferred', ok:false, from:'From the last 60 posts'},
+      {k:'Address', v:'Use "vous" everywhere', src:'inferred', ok:false, from:'From the last 60 posts'},
+      {k:'Never', v:'No discounts or promo codes in public', src:'inferred', ok:false, from:'No promo in 60 posts'} ],
+    competitors:[ {k:'Maison Argile', v:'@maisonargile · 22k followers', src:'inferred', ok:false, from:'Followed by 40% of your audience'},
+      {k:'Terre & Feu', v:'@terreetfeu · 9k followers', src:'inferred', ok:false, from:'Same hashtags, same city'} ],
+    rules:[ {k:'Orders and delivery', v:'Send to hello@ateliersora.com', src:'inferred', ok:false, from:'Found on the contact page'} ],
+    sources:[ {k:'Website', v:'ateliersora.com · read today', src:'connected', ok:true}, {k:'Instagram', v:'60 posts and 1,200 followers analyzed', src:'observed', ok:true} ] } };
+const GOAL_IDEAS = [ ['Instagram followers','5,000 by June. Now 1,200'], ['Sales from social','Track clicks to the shop'], ['Reply time','Under 4 h on weekdays'] ];
+const brandKeys = () => Object.keys(BRANDS).filter(k => k==='sora' ? (R().guardrails || sees('sora')) : sees(k));
+const voiceItems = k => { const pb = PLAYBOOK[k], b = BRANDS[k];
+  if(b.voice) return b.voice;
+  return [ ...pb.tone.map(t=>({k:'Tone', v:t, src:'declared', ok:true})), ...pb.dont.map(t=>({k:'Never', v:t, src:'declared', ok:true})),
+    ...(pb.pending||[]).map((p,i)=>({k:'Suggested rule', v:p.r, src:'inferred', ok:false, from:p.from, pendingIdx:i})) ]; };
+const secItems = (k, sec) => sec==='voice' ? voiceItems(k) : (BRANDS[k][sec] || []);
+const pendingOf = k => BSEC.reduce((n,x)=>n+secItems(k,x.k).filter(i=>!i.ok).length, 0);
+const totalOf = k => BSEC.reduce((n,x)=>n+secItems(k,x.k).length, 0);
+const srcTag = it => { const [ic, label] = SRC[it.src]; return `<span class="src ap-caption muted"><i class="ap-icon-${ic}"></i>${label}${it.from?' · '+esc(it.from):''}</span>`; };
+const brandAv = (k, size=40) => `<span class="ap-avatar size-${size} square"><span class="ap-avatar-initials">${CLIENTS[k].name[0]}</span></span>`;
+function viewBrands(){
+  const r = R(), keys = brandKeys();
+  if(S.brand && keys.includes(S.brand)) return viewBrand(S.brand);
+  S.brand = null;
+  const sora = keys.includes('sora') && BRANDS.sora.isNew;
+  return `<p class="ap-body intro">One shared context per brand. Every agent and feature reads it from here, so you set things once.</p>
+  ${sora ? `<div class="ap-infobox informative has-title"><i class="ap-icon-sparkles"></i><div class="ap-infobox-content"><div class="ap-infobox-texts"><span class="ap-infobox-title">New brand found: Atelier Sora</span><span class="ap-infobox-message">You connected 2 Atelier Sora accounts yesterday. We prepared the brand from them and the website. Check it before agents use it.</span></div>${btn('primary blue','Review','data-brand="sora"')}</div></div>` : ''}
+  <div class="brand-grid">${keys.filter(k=>!(k==='sora' && BRANDS.sora.isNew)).map(k=>{ const b = BRANDS[k], pend = pendingOf(k);
+    return `<button type="button" class="ap-card brand-card" data-brand="${k}"><div class="row">${brandAv(k)}<div class="spacer"><div class="ap-body-bold">${CLIENTS[k].name}</div><div class="ap-caption muted">${b.site}</div></div>${pend ? status('orange',`${pend} to check`) : status('green','Up to date')}</div>
+      <div class="row">${b.profiles.map(pid=>profAv(pid,24)).join('')}<span class="ap-caption muted">${b.profiles.length} accounts · ${AGENTS.filter(a=>a.client===k).length} agents</span></div>
+      <div class="row wr">${BSEC.map(x=>tag(x.t+' '+secItems(k,x.k).length,'grey')).slice(0,4).join('')}</div></button>`; }).join('')}</div>
+  <section class="ap-card sec"><div class="sec-head"><span class="ap-avatar size-40 square"><span class="ap-avatar-initials"><i class="ap-icon-buildings"></i></span></span><div class="spacer"><h2 class="ap-h3">Shared by all brands</h2><p class="ap-body muted">Organization rules, labels and media library. A brand can add rules, never remove these.</p></div></div>
+    <div>${PLAYBOOK.org.tone.map(t=>`<div class="rule"><i class="ap-icon-check"></i><span class="ap-body spacer">${esc(t)}</span></div>`).join('')}${PLAYBOOK.org.dont.map(t=>`<div class="rule"><i class="ap-icon-close"></i><span class="ap-body spacer">${esc(t)}</span></div>`).join('')}</div></section>`;
+}
+function viewBrand(k){
+  const r = R(), b = BRANDS[k], pend = pendingOf(k), total = totalOf(k), can = r.validateRules && (k!=='sora' || r.guardrails);
+  const head = `<div>${btn('ghost grey','All brands','data-brand-back','arrow-left')}</div>
+  <section class="ap-card sec"><div class="sec-head">${brandAv(k,48)}<div class="spacer"><div class="ap-caption muted">${b.kind} · Owner ${b.owner}</div><h2 class="ap-h2">${CLIENTS[k].name}</h2><div class="row">${b.profiles.map(pid=>`<span class="row">${profAv(pid,24)}<span class="ap-caption">${PROFILES[pid].handle}</span></span>`).join('')}<span class="ap-caption muted">· ${b.site}</span></div></div>
+    ${pend ? status('orange',`${pend} of ${total} to check`) : status('green','Up to date')}</div>
+    ${pend ? `<div class="row wr"><span class="ap-body spacer">${b.isNew ? 'Everything below was prepared for you. Nothing is used until you accept it.' : 'Agents found new information. It is not used until you accept it.'}</span>${can ? btn('stroked grey',`Accept all ${pend}`,`data-accept-all="${k}"`,'check') : ''}</div>` : ''}
+    ${b.isNew && !pend && can ? `<div class="row wr"><span class="ap-body spacer">${b.goals.length ? 'The brand is ready. Agents will use it in Inbox, Publishing, Listening and Reports.' : 'Add at least one goal, then start the agents.'}</span>${btn('primary blue','Start agents for this brand',`data-brand-live="${k}" ${b.goals.length?'':'disabled'}`,'play')}</div>` : ''}</section>`;
+  return head + BSEC.map(sec=>{ const items = secItems(k, sec.k);
+    const rows = items.map((it,i)=>`<div class="item"><span class="ap-body muted">${esc(it.k)}</span><div class="stack"><span class="ap-body${it.ok?'':'-bold'}">${esc(it.v)}</span>${srcTag(it)}${it.ok?'':`<span class="ap-caption muted">Not used by agents until you accept it</span>`}</div>
+      <div class="item-acts">${it.ok ? '' : (can ? `<a href="#" class="ap-link small standalone" data-item-no="${k}|${sec.k}|${i}">Dismiss</a>${btn('stroked grey','Accept',`data-item-yes="${k}|${sec.k}|${i}"`)}` : status('orange','Waiting for an admin'))}</div></div>`).join('');
+    const empty = !items.length ? (sec.k==='goals'
+      ? `<div class="stack"><span class="ap-body muted">No goal yet. Pick one to start, you can change it later.</span><div class="links">${GOAL_IDEAS.map((g,i)=>can?`<a href="#" class="ap-link small standalone" data-goal="${k}|${i}"><i class="ap-icon-plus"></i>${g[0]}: ${g[1]}</a>`:'').join('')}</div></div>`
+      : `<span class="ap-body muted">Nothing yet.</span>`) : '';
+    const used = `<div class="used"><span class="ap-caption muted">Used by</span>${sec.used.map(u=>`<span class="tip">${tag(u,'grey',USE[u][0])}<span class="ap-tooltip top-right">${USE[u][1]}</span></span>`).join('')}</div>`;
+    return `<section class="ap-card sec"><div class="sec-head"><div class="spacer"><h2 class="ap-h3">${sec.t}</h2><p class="ap-caption muted">${sec.d}</p></div></div>${used}<div>${rows}${empty}</div></section>`; }).join('');
+}
+function itemAct(ref, yes){
+  S.made++;
+  const [k, sec, i] = ref.split('|'), items = secItems(k, sec), it = items[+i]; if(!it) return;
+  if(it.pendingIdx!==undefined){ const p = PLAYBOOK[k].pending.splice(it.pendingIdx,1)[0]; if(yes) PLAYBOOK[k].tone.push(p.r); }
+  else if(yes) it.ok = true; else BRANDS[k][sec].splice(+i,1);
+  if(yes && sec==='competitors' && S.j) S.learned.push(`${it.k} is tracked in Listening and benchmarked in Reports, with no add-on to set up.`);
+  addLog({who:R().name, act:`${yes?'Accepted':'Dismissed'} "${it.v}" in ${CLIENTS[k].name} brand`, profile:BRANDS[k].profiles[0], res:['green','Done'], why:'Brand review.'});
+  render(); snack(yes ? 'Accepted. Agents use it from now on.' : 'Dismissed');
+}
+function acceptAll(k){
+  S.made++;
+  BSEC.forEach(sec=>{ secItems(k, sec.k).filter(it=>!it.ok).forEach(it=>{ it.ok = true; if(sec.k==='competitors' && S.j) S.learned.push(`${it.k} is tracked in Listening and benchmarked in Reports, with no add-on to set up.`); }); });
+  const pb = PLAYBOOK[k]; if(pb.pending?.length){ pb.tone.push(...pb.pending.map(p=>p.r)); pb.pending = []; }
+  addLog({who:R().name, act:`Accepted all suggestions for ${CLIENTS[k].name}`, profile:BRANDS[k].profiles[0], res:['green','Done'], why:'Brand review.'});
+  render(); snack('All accepted. Agents use them from now on.');
+}
+function addGoal(ref){
+  S.made++;
+  const [k, i] = ref.split('|'), g = GOAL_IDEAS[+i]; BRANDS[k].goals.push({k:g[0], v:g[1], src:'declared', ok:true});
+  if(S.j) S.learned.push(`Reports track "${g[0]}: ${g[1]}" and agents suggest actions when it lags.`);
+  render(); snack('Goal added');
+}
+function brandLive(k){
+  S.made++;
+  const b = BRANDS[k]; b.isNew = false; b.kind = 'Client';
+  ['sophie'].forEach(w=>{ if(!ROLES[w].clients.includes(k)) ROLES[w].clients.push(k); });
+  if(!agentById('inbox-'+k)){
+    AGENTS.push({ id:'inbox-'+k, name:'Inbox agent', module:'inbox', client:k, owner:'Sophie Martin', status:'active', week:0, rate:0, mission:`Answer routine messages for ${CLIENTS[k].name} using its brand voice.`, profiles:b.profiles, triggers:['New comment or private message'], escalate:'Sophie Martin', limits:'Up to 100 replies a day', actions:[{n:'Thank-you replies', l:'draft'},{n:'Shipping and FAQ answers', l:'draft'},{n:'Complaints', l:'suggest'}] },
+               { id:'pub-'+k, name:'Publishing agent', module:'publishing', client:k, owner:'Sophie Martin', status:'active', week:0, rate:0, mission:`Suggest posts for ${CLIENTS[k].name} that match its goals and voice.`, profiles:b.profiles, triggers:['Calendar gap of more than 3 days'], escalate:'Sophie Martin', limits:'Up to 6 drafts a week', actions:[{n:'Fill calendar gaps', l:'draft'}] });
+    AGENTS.slice(-2).forEach(a=>a.actions.forEach((x,i)=>S.levels[a.id+':'+i]=x.l));
+    LIVE['inbox-'+k] = ['Reading the brand voice','Waiting for new messages']; LIVE['pub-'+k] = ['Looking for calendar gaps','Reading the brand goals'];
+  }
+  if(S.j) S.learned.push(`Inbox, Publishing, Listening and Reports all read one shared ${CLIENTS[k].name} brand. Change it once, every agent follows.`);
+  addLog({who:R().name, act:`Started agents for ${CLIENTS[k].name}`, profile:b.profiles[0], res:['green','Done'], why:'Brand validated.'});
+  render(); snack(`Agents started for ${CLIENTS[k].name}`);
 }
 
 /* --- activity --- */
@@ -779,7 +903,7 @@ function remember(id){
   const d = S.decisions.find(x=>x.id===id), note = S.steer[id]?.note; if(!d || !note) return;
   (PLAYBOOK[clientOf(d)].pending ||= []).push({ r:ruleFrom(note), from:'From your change request, by '+R().name });
   S.steer[id].note = null; render();
-  snack(R().validateRules ? 'Suggested as a rule. Review it in Playbook.' : 'Suggested as a rule. An admin will review it.');
+  snack(R().validateRules ? 'Suggested as a rule. Review it in Brands.' : 'Suggested as a rule. An admin will review it.');
 }
 /* the agent asks a question */
 function answer(id){
@@ -893,7 +1017,7 @@ const CMDS = [
       const txt = (q && /never|always|jamais|toujours|don.?t/i.test(q)) ? q : 'Never reply to competitor accounts';
       return { msg:`Add this rule for every client: "${txt}". All agents will follow it.${R().validateRules ? '' : ' An admin will review it first.'}`, ok:R().validateRules ? 'Add rule' : 'Suggest rule',
         run:()=>{ if(R().validateRules) PLAYBOOK.org.dont.push(txt); else (PLAYBOOK.org.pending ||= []).push({r:txt, from:'From the command bar, by '+R().name});
-          S.view='playbook'; S.pb='org'; S.agent=null; snack(R().validateRules ? 'Rule added to the organization playbook' : 'Rule suggested to admins'); } }; } },
+          S.view='brands'; S.brand=null; S.agent=null; snack(R().validateRules ? 'Rule added to the organization playbook' : 'Rule suggested to admins'); } }; } },
   { text:'Launch the VivaTech campaign for Maison Lune', re:/launch|campaign|campagne|vivatech|objective|lance/i, plan:q=>{
       if(!R().modules.includes('publishing') || !sees('lune')) return {deny:'You need Publishing rights on Maison Lune to launch a campaign.'};
       return { go:()=>{ S.view='objectives'; S.agent=null; S.obj.text = (q && q.length > 25 && /vivatech|campaign|campagne/i.test(q)) ? q.charAt(0).toUpperCase()+q.slice(1) : OBJ_TEXT; S.obj.phase='planning'; S.obj.note=null; S.obj.o={n:9, nets:'Instagram', start:'Today'}; render(); startPlanning(); } }; } },
@@ -1000,6 +1124,13 @@ const JOURNEYS = {
       {go:'objectives', t:'Give agents a goal', b:'Click New objective, or press ⌘K and type "Launch the VivaTech campaign".', done:()=>['plan','run'].includes(S.obj.phase)},
       {go:'objectives', t:'Adjust the plan, then launch it', b:'Untick a step or ask for a change, like "Add LinkedIn". Nothing starts before you launch.', done:()=>S.obj.phase==='run'},
       {go:'objectives', t:'Review at the checkpoint', b:'Agents work until they need you. Approve the drafts so they can continue.', done:()=>S.obj.steps[2]?.st==='done'} ]},
+  brand:{ who:'sophie', persona:'Sophie, agency lead', title:'Set up a new client brand in 2 minutes', shows:'Agorapulse prepares the brand from the accounts and the website. Sophie only checks, adds a goal and starts the agents.', cards:[],
+    end:'Agorapulse filled in the brand for you. You checked it, added the one thing only you know, the goal, and every agent now reads the same Atelier Sora context.',
+    steps:[
+      {go:'brands', t:'A new brand was found', b:'You connected 2 Atelier Sora accounts yesterday. Agorapulse prepared the brand from them and the website. Open it.', done:()=>S.brand==='sora'},
+      {go:'brands', t:'Check what was inferred', b:'Nothing is used until you accept it. Accept items one by one, dismiss what is wrong, or accept all.', done:()=>pendingOf('sora')===0},
+      {go:'brands', t:'Add a goal', b:'Goals are the only thing agents can\'t guess. Pick one in the Goals section.', done:()=>BRANDS.sora.goals.length>0},
+      {go:'brands', t:'Start the agents', b:'Hover "Used by" to see what each part changes, then start the agents for this brand.', done:()=>!BRANDS.sora.isNew} ]},
   thomas:{ who:'sophie', persona:'Thomas, client approver', title:'Approve without opening Agorapulse', shows:'The agent prepares the month, the agency sends it, the client approves it in one place.', cards:['d11'],
     end:'The agent prepared the month, Sophie sent it in one click, and Thomas approved it without seeing any agent. His note teaches the agent what this client dislikes.',
     steps:[
@@ -1012,6 +1143,7 @@ function enterStep(){
   const st = curStep(); if(!st) return;
   if(st.who) S.who = st.who;
   if(st.go){ S.view = st.go; S.agent = st.agent || null; }
+  if(st.go==='brands' && S.jStep===0) S.brand = null;
   if(st.act) S.actFilter = st.act;
 }
 function jCheck(){
@@ -1059,7 +1191,7 @@ $('journeyDialog').addEventListener('click', e=>{
 
 /* ================= events ================= */
 document.addEventListener('click', e => {
-  const t = e.target.closest('button, a, [data-go], [data-agent], [data-obj], [data-view], [data-who]');
+  const t = e.target.closest('button, a, [data-go], [data-agent], [data-obj], [data-view], [data-who], [data-brand]');
   if(!t) { if(!$('whoMenu').contains(e.target)) $('whoMenu').hidden = true; return; }
   if(t.tagName==='A') e.preventDefault();
   const ds = t.dataset;
@@ -1104,6 +1236,13 @@ document.addEventListener('click', e => {
   if(ds.sim){ S.sim='loading'; render(); setTimeout(()=>{ S.sim=ds.sim; render(); }, 1200); return; }
   if(ds.pause){ const a = agentById(ds.pause); a.status='paused'; addLog({who:R().name, act:'Paused '+agentLabel(a), profile:a.profiles[0], res:['green','Done'], why:'Manual pause.'}); render(); snack('Agent paused. Nothing will be sent until an admin resumes it.'); return; }
   if(ds.resume){ agentById(ds.resume).status='active'; render(); snack('Agent resumed'); return; }
+  if(ds.brand){ S.brand = ds.brand; S.view = 'brands'; S.agent = null; render(); $('scroll').scrollTop=0; return; }
+  if(ds.brandBack!==undefined){ S.brand = null; render(); return; }
+  if(ds.itemYes){ itemAct(ds.itemYes, true); return; }
+  if(ds.itemNo){ itemAct(ds.itemNo, false); return; }
+  if(ds.acceptAll){ acceptAll(ds.acceptAll); return; }
+  if(ds.goal){ addGoal(ds.goal); return; }
+  if(ds.brandLive){ brandLive(ds.brandLive); return; }
   if(ds.pb){ S.pb = ds.pb; render(); return; }
   if(ds.ruleYes!==undefined || ds.ruleNo!==undefined){ const i = +(ds.ruleYes ?? ds.ruleNo), p = PLAYBOOK[S.pb].pending.splice(i,1)[0];
     if(ds.ruleYes!==undefined){ PLAYBOOK[S.pb].tone.push(p.r); snack('Rule added. All agents on this client will use it.'); } else snack('Rule dismissed'); render(); return; }
