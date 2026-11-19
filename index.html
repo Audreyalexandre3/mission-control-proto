@@ -479,7 +479,7 @@ function renderHeader(){
 
 function render(){
   jCheck(); renderShell(); renderHeader(); renderGuide();
-  const r = R(), wide = ['home','agents','activity'].includes(S.view) || (S.view==='brands' && !S.brand);
+  const r = R(), wide = ['agents','activity'].includes(S.view) || (S.view==='brands' && !S.brand);
   if(S.view==='recap'){ $('view').className = 'wrap narrow'; $('view').innerHTML = viewRecap(); return; }
   $('view').className = 'wrap ' + (wide ? 'wide' : 'narrow');
   if(r.external){ $('view').className='wrap narrow'; $('view').innerHTML = viewExternal(); return; }
@@ -518,38 +518,25 @@ const AWAY = [
   {ag:'pub-brio', n:12, t:'December posts prepared for Café Brio'} ];
 function needsMe(){ const mine = visibleDecisions().filter(canDecide), j = J(); return j && j.cards.length ? mine.filter(d=>j.cards.includes(d.id)) : mine; }
 function viewHome(){
-  const r = R(), vis = visibleDecisions(), mine = needsMe(), scale = r.clients.length/3;
-  const crisis = vis.find(d=>d.id==='d1');
+  const r = R(), mine = needsMe(), j = J();
+  const now = j ? mine : mine.filter(d=>d.urgency==='high'), later = j ? [] : mine.filter(d=>d.urgency!=='high');
+  const mins = Math.max(2, Math.round(now.length*1.5));
   const away = AWAY.filter(x=>sees(agentById(x.ag).client)), alone = away.reduce((n,x)=>n+x.n,0);
-  const access = [
-    [true, `See agents and activity for ${r.clients.map(c=>CLIENTS[c].name).join(', ')}`],
-    [r.modules.length>0, r.modules.length ? `Decide in ${r.modules.map(m=>MODULES[m]).join(', ')}` : 'Approve or reject decisions'],
-    [r.configure, 'Create and change agents'], [r.grantAuto, 'Let an agent act alone'],
-    [r.validateRules, 'Add rules to the playbook'], [r.pause, 'Pause agents on your clients'], [r.guardrails, 'Change limits, red list and AI budget'] ];
+  const byBrand = r.clients.map(c=>({c, items:away.filter(x=>agentById(x.ag).client===c)})).filter(x=>x.items.length);
+  const row = d => { const a = agentById(d.agent); return `<div class="list-row click" data-go="decisions">${profAv(d.profile,32)}<div class="spacer"><div class="ap-body-bold">${esc(d.ask)}</div><div class="ap-caption muted">${CLIENTS[clientOf(d)].name} · ${a.name}</div></div><i class="ap-icon-chevron-right"></i></div>`; };
+  const summary = !r.modules.length ? `Agents handled ${alone} things since yesterday 6 pm. You can follow them, not decide.`
+    : now.length ? `Agents handled ${alone} things since yesterday 6 pm. ${now.length} need${now.length===1?'s':''} you now, about ${mins} min.`
+    : `Agents handled ${alone} things since yesterday 6 pm. Nothing needs you right now.`;
   return `
-  <p class="ap-body intro">Good morning, ${r.name.split(' ')[0]}.</p>
-  ${crisis ? `<div class="ap-infobox error has-title"><i class="ap-icon-warning"></i><div class="ap-infobox-content"><div class="ap-infobox-texts"><span class="ap-infobox-title">Possible crisis on Maison Lune Facebook</span><span class="ap-infobox-message">A 1-star review was shared 40 times in 2 hours. The agent paused scheduled posts and drafted a reply.</span></div>${btn('stroked grey','Review','data-go="decisions"')}</div></div>` : ''}
-  <section class="ap-card sec"><div><h2 class="ap-h2">While you were away</h2><p class="ap-body muted">Since yesterday 6 pm</p></div>
-    <div class="away">
-      <div class="away-col"><span class="ap-body muted">Done by agents</span><span class="ap-h1">${alone}</span>
-        <div>${away.map(x=>{ const a = agentById(x.ag); return `<div class="list-row">${agentAv(a,32)}<div class="spacer"><div class="ap-body"><span class="ap-body-bold">${x.n}</span> ${x.t}</div><div class="ap-caption muted">${agentLabel(a)}</div></div></div>`; }).join('')}</div>
-        <a href="#" class="ap-link small standalone" data-go="activity">See everything in Activity</a></div>
-      <div class="away-col"><span class="ap-body muted">Needs you</span><span class="ap-h1">${mine.length}</span>
-        <div>${mine.length ? [...mine].sort(byUrg).slice(0,4).map(d=>{ const a=agentById(d.agent); return `<div class="list-row click" data-go="decisions">${agentAv(a,32)}<div class="spacer"><div class="ap-body-bold">${esc(d.ask)}</div><div class="ap-caption muted">${a.name} · ${CLIENTS[clientOf(d)].name}</div></div>${status(...URG[d.urgency])}</div>`; }).join('') : '<p class="ap-body muted">Nothing waiting. Agents handle the rest.</p>'}</div>
-        ${mine.length && !J() ? `<div>${btn('primary blue',`Start with ${mine.length===1?'it':'these '+mine.length}`,'data-go="decisions"')}</div>` : ''}</div>
-    </div></section>
-  <div class="tiles">
-    <div class="tile"><span class="ap-body muted">Done alone this week</span><span class="ap-h1">78%</span><span class="delta good"><i class="ap-icon-arrow-up"></i>+6 pts vs last week</span></div>
-    <div class="tile"><span class="ap-body muted">Decisions for you this week</span><span class="ap-h1">${Math.max(1,Math.round(14*scale))}</span><span class="delta good"><i class="ap-icon-arrow-down"></i>5 fewer than last week</span></div>
-    <div class="tile"><span class="ap-body muted">Rules learned this week</span><span class="ap-h1">${3+S.learned.length}</span><span class="delta flat">From your answers and edits</span></div>
-    <div class="tile"><span class="ap-body muted">Time saved this week</span><span class="ap-h1">${(6.7*scale).toFixed(1).replace('.0','')} h</span><span class="delta flat">Based on average reply time</span></div>
-  </div>
-  <div class="home-grid">
-    <section class="ap-card sec"><div class="sec-head"><h2 class="ap-h3">Agents right now</h2><span class="spacer"></span><a href="#" class="ap-link standalone" data-go="agents">Manage</a></div>
-      <div>${visibleAgents().map(a=>`<div class="list-row">${agentAv(a,32)}<div class="spacer"><div class="ap-body-bold">${agentLabel(a)}</div><div class="ap-caption muted" ${isPaused(a)?'':`data-live="${a.id}"`}>${isPaused(a)?'Not working':LIVE[a.id][liveTick % LIVE[a.id].length]}</div></div>${agentStatus(a)}</div>`).join('')}</div></section>
-    <section class="ap-card sec access"><div><h2 class="ap-h3">What you can do here</h2><p class="ap-body muted">${r.role}. Agents never get more rights than the people who manage them.</p></div>
-      <ul style="grid-template-columns:1fr">${access.map(([ok,t])=>`<li class="${ok?'yes':'no'}"><i class="ap-icon-${ok?'check':'close'}"></i><span class="ap-body${ok?'':' muted'}">${t}</span></li>`).join('')}</ul></section>
-  </div>`;
+  <div><h2 class="ap-h1">Good morning, ${r.name.split(' ')[0]}</h2><p class="ap-body muted">${summary}</p></div>
+  ${r.modules.length ? `<section class="ap-card sec"><div class="sec-head"><h2 class="ap-h3 spacer">Needs you now</h2>${now.length ? btn('primary blue','Start','data-go="decisions"') : ''}</div>
+    <div>${now.length ? now.map(row).join('') : '<p class="ap-body muted">All clear. Agents bring new decisions here.</p>'}</div>
+    ${later.length ? `<a href="#" class="ap-link small standalone" data-go="decisions">${later.length} more can wait until later today</a>` : ''}</section>` : ''}
+  <section class="ap-card sec"><div class="sec-head"><h2 class="ap-h3 spacer">Done without you</h2><a href="#" class="ap-link small standalone" data-go="activity">See all in Activity</a></div>
+    <div>${byBrand.map(({c,items})=>`<div class="list-row">${brandAv(c,32)}<div class="spacer"><div class="ap-body-bold">${CLIENTS[c].name}</div><div class="ap-caption muted">${items.map(x=>x.n+' '+x.t).join(' · ')}</div></div></div>`).join('')}</div></section>
+  <section class="ap-card sec"><h2 class="ap-h3">Delegation this week</h2>
+    <div class="tiles two inset"><div class="tile"><span class="ap-body muted">Done by agents alone</span><span class="ap-h2">78%</span><span class="delta good"><i class="ap-icon-arrow-up"></i>6 pts more than last week</span></div>
+      <div class="tile"><span class="ap-body muted">Times you had to decide</span><span class="ap-h2">${Math.max(1,Math.round(19*r.clients.length/3))}</span><span class="delta good"><i class="ap-icon-arrow-down"></i>5 fewer than last week</span></div></div></section>`;
 }
 const byUrg = (a,b) => 'hml'.indexOf(a.urgency[0]) - 'hml'.indexOf(b.urgency[0]);
 
@@ -1106,7 +1093,7 @@ const JOURNEYS = {
   lea:{ who:'lea', persona:'Léa, community manager', title:'Start the day with the work already done', shows:'Agents worked overnight. Léa only decides the 3 cases they could not handle.', cards:['d1','d12','d13'],
     end:'Agents handled the routine. You decided the 3 cases that needed a person, and taught them how to handle 2 of them next time.',
     steps:[
-      {go:'home', t:'See what agents did while you were away', b:'The routine is done. Only 3 decisions are left for you.', next:'Go to the 3 decisions', nextGo:'decisions'},
+      {go:'home', t:'Start your day', b:'The routine is done. Only 3 decisions are left for you.', next:'Go to the 3 decisions', nextGo:'decisions'},
       {go:'decisions', card:'d1', t:'Handle the crisis', b:'A bad review is spreading. The agent already paused posts and wrote a holding reply. Check it, change it if needed, and send it.', done:()=>gone('d1')},
       {go:'decisions', card:'d12', t:'Answer the agent\'s question', b:'This refund is above the agent\'s limit. Pick an answer and keep "Do the same" ticked so it doesn\'t ask again.', done:()=>gone('d12')},
       {go:'decisions', card:'d13', t:'Teach it a product fact', b:'The agent won\'t guess on product facts. Your answer is saved for the next person who asks.', done:()=>gone('d13')} ]},
